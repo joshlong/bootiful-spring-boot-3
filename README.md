@@ -29,8 +29,8 @@
   * but what happens when it has issues? somebody needs to provide that configuration! enter spring boot 3 aot engine
   * kick off a build
 * aot native image builds takes a long time
-  * 	we asked them to play elevator music https://github.com/joshlong/bootiful-spring-boot-3/edit/main/README.md
-  * 	then look at the replies
+  * we asked them to play elevator music https://github.com/joshlong/bootiful-spring-boot-3/edit/main/README.md
+  * then look at the replies
  * client
  * reactive web, gateway, graphql
  * declarative http clients
