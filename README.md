@@ -16,15 +16,22 @@
   * now, granted, that feature isn't great for serverless...
 * controller advice
 * problem details
-  * show the RFC
+  * show the [RFC](https://www.rfc-editor.org/rfc/rfc7807)
 * observation
+  * new unified `Observation` api 
+  * show tracing and metrics in actuator
 * buildpacks
 * aot + graalvm
-  * og java garbage collector  https://twitter.com/jtannady/status/981547257479778307?lang=en
-* takes a long time
-* 	elevator music
+  * java is already amazing. did u know its ranked the 4th most energy effivient language after the likes of C and Go? Python's 70x less efficient!
+  * it owes its incredible speed to the garbage collector and JIT
+  * did you see this? the _original_ Java garbage collector  https://twitter.com/jtannady/status/981547257479778307?lang=en 
+  * the JIT is amazing! it works by creating a closed world assumption of your apps. it needs to remove all _fun_. If it can do that, it can produce applications that fly
+  * but what happens when it has issues? somebody needs to provide that configuration! enter spring boot 3 aot engine
+  * kick off a build
+* aot native image builds takes a long time
+  * 	we asked them to play elevator music https://github.com/joshlong/bootiful-spring-boot-3/edit/main/README.md
+  * 	then look at the replies
 * client
 * reactive web, gateway, graphql
-* make sure to use snapshot for s-c
 * declarative http clients
 
