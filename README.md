@@ -10,6 +10,10 @@
 * controller 
   * make sure to do a `@Controller` + `@ResponseBody`, _not_ `RouterFunction` for consistency with the rest of the talk
 * error handling
+  * show that the new code uses `HttpServletRequest` from `jakarta.\*`, not `javax.\*`
+  * this is because Oracle ghosted the community
+  * change is hard! now's a good time to clear the air on another major, breaking change in Sprng Boot 3: [no more animated ASCII art](https://raw.githubusercontent.com/snicoll-demos/demo-animated-banner/master/src/main/resources/banner.gif )! show the 2.7 feature turning this `.gif` into a banner 
+  * now, granted, that feature isn't great for serverless...
 * controller advice
 * problem details
   * show the RFC
