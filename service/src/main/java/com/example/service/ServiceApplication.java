@@ -2,19 +2,18 @@ package com.example.service;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.context.annotation.Bean;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Collection;
 
 @SpringBootApplication
 public class ServiceApplication {
@@ -23,35 +22,37 @@ public class ServiceApplication {
         SpringApplication.run(ServiceApplication.class, args);
     }
 
+
+    @Bean
+    ApplicationRunner applicationRunner(CustomerRepository repository) {
+        return args -> repository.findAll().forEach(System.out::println);
+    }
 }
+
 
 @Controller
 @ResponseBody
 class CustomerHttpController {
 
-    private final CustomerService service;
+    private final CustomerRepository repository;
     private final ObservationRegistry registry;
 
-    CustomerHttpController(CustomerService service, ObservationRegistry registry) {
-        this.service = service;
+    CustomerHttpController(CustomerRepository repository, ObservationRegistry registry) {
+        this.repository = repository;
         this.registry = registry;
     }
 
-    @GetMapping("/customers")
-    Collection<Customer> all() {
+    @GetMapping("/customers/{name}")
+    Iterable<Customer> byName(@PathVariable String name) {
+        Assert.state(Character.isUpperCase(name.charAt(0)), "the name must start with an uppercase letter");
         return Observation
-                .createNotStarted("all", this.registry)
-                .observe(this.service::all);
+                .createNotStarted("by-name", this.registry)
+                .observe(() -> repository.findByName(name));
     }
 
-    @GetMapping("/customers/{name}")
-    Collection<Customer> byName(@PathVariable String name) {
-        if (name == null && Character.isUpperCase(name.charAt(0)))
-            throw new IllegalArgumentException("the name must be valid");
-
-        return Observation
-                .createNotStarted("byName", this.registry)
-                .observe(() -> this.service.byName(name));
+    @GetMapping("/customers")
+    Iterable<Customer> customers() {
+        return this.repository.findAll();
     }
 }
 
@@ -59,38 +60,19 @@ class CustomerHttpController {
 class ErrorHandlingControllerAdvice {
 
     @ExceptionHandler
-    ProblemDetail handle(IllegalArgumentException iae ) {
-        return ProblemDetail
-                .forStatusAndDetail(HttpStatusCode.valueOf(503) ,"the name is invalid");
+    ProblemDetail handle(IllegalStateException ise, HttpServletRequest request) {
+        request.getHeaderNames().asIterator().forEachRemaining(System.out::println);
+        var pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST.value());
+        pd.setDetail(ise.getMessage());
+        return pd;
     }
 }
 
-@Service
-class CustomerService {
+interface CustomerRepository extends CrudRepository<Customer, Integer> {
 
-    private final JdbcTemplate template;
-
-    private final RowMapper<Customer> customerRowMapper = new RowMapper<Customer>() {
-
-        @Override
-        public Customer mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new Customer(rs.getInt("id"), rs.getString("name"));
-        }
-    };
-
-    CustomerService(JdbcTemplate template) {
-        this.template = template;
-    }
-
-    Collection<Customer> byName(String name) {
-        return this.template
-                .query("select * from customer where name  = ? ", this.customerRowMapper, name);
-    }
-
-    Collection<Customer> all() {
-        return this.template.query("select * from customer", this.customerRowMapper);
-    }
+    Iterable<Customer> findByName(String name);
 }
 
-record Customer(Integer id, String name) {
+// look ma, no Lombok!
+record Customer(@Id Integer id, String name) {
 }

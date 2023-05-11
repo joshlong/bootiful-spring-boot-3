@@ -1,30 +1,25 @@
 package com.example.client;
 
-import org.springframework.aot.hint.MemberCategory;
-import org.springframework.aot.hint.RuntimeHints;
-import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ImportRuntimeHints;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.BatchMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.support.WebClientAdapter;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 import reactor.core.publisher.Flux;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 @SpringBootApplication
 public class ClientApplication {
@@ -33,72 +28,80 @@ public class ClientApplication {
         SpringApplication.run(ClientApplication.class, args);
     }
 
+
     @Bean
-    CustomerClient client(WebClient.Builder builder) {
-        return HttpServiceProxyFactory
-                .builder(WebClientAdapter.forClient(builder.baseUrl("http://localhost:8080/").build()))
-                .build()
-                .createClient(CustomerClient.class);
+    ApplicationRunner applicationRunner(CustomerClient cc) {
+        return args -> cc.all().subscribe(System.out::println);
     }
 
     @Bean
-    RouteLocator gateway(RouteLocatorBuilder rlb) {
-        return rlb
-                .routes()
-                .route(rs -> rs.path("/proxy")
-                        .filters(f -> f.setPath("/customers"))
+    CustomerClient customerClient(WebClient.Builder builder) {
+        var wc = builder.baseUrl("http://localhost:8080/").build();
+        var wca = WebClientAdapter.forClient(wc);
+        var hsp = HttpServiceProxyFactory.builder()
+                .clientAdapter(wca)
+                .build()
+                .createClient(CustomerClient.class);
+        return hsp;
+    }
+
+    @Bean
+    RouteLocator gateway(RouteLocatorBuilder b) {
+        return b.routes()
+                .route(rs -> rs
+                        .path("/proxy")
+                        .filters(fs -> fs
+                                .setPath("/customers")
+                                .retry(10)
+                                .addResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                        )
                         .uri("http://localhost:8080/"))
                 .build();
     }
-
-    @Bean
-    ApplicationListener<ApplicationReadyEvent> readyListener(CustomerClient client) {
-        return event -> client.all().subscribe(System.out::println);
-    }
-
 }
 
 
-class CustomerHints implements RuntimeHintsRegistrar {
-
-    @Override
-    public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-        List.of(Customer.class, CustomerGraphqlController.class).forEach(c -> hints.reflection().registerType(c, MemberCategory.values()));
-        Set.of(new ClassPathResource("graphiql/index.html"), new ClassPathResource("graphql/schema.graphqls"))
-                .forEach(s -> hints.resources().registerResource(s));
-    }
+record Profile(Integer id) {
 }
 
 @Controller
-@ResponseBody
-@ImportRuntimeHints(CustomerHints.class)
 class CustomerGraphqlController {
 
-    final CustomerClient client;
+    private final CustomerClient cc;
 
-    CustomerGraphqlController(CustomerClient client) {
-        this.client = client;
+    CustomerGraphqlController(CustomerClient cc) {
+        this.cc = cc;
     }
 
     @QueryMapping
     Flux<Customer> customers() {
-        return this.client.all();
+        return this.cc.all();
     }
 
-    @QueryMapping
-    Flux<Customer> customersByName(@Argument String name) {
-        return this.client.byName(name);
+    @BatchMapping
+    Map<Customer, Profile> profile(List<Customer> customerList) {
+        var map = new HashMap<Customer, Profile>();
+        for (var c : customerList)
+            map.put(c, new Profile(c.id()));
+        return map;
     }
+
+    /*@SchemaMapping(typeName = "Customer")
+    Profile profile(Customer customer) {
+        return new Profile(customer.id());
+    }*/
 }
 
 interface CustomerClient {
 
-    @GetExchange("/customers")
-    Flux<Customer> all();
-
     @GetExchange("/customers/{name}")
     Flux<Customer> byName(@PathVariable String name);
+
+    @GetExchange("/customers")
+    Flux<Customer> all();
 }
 
+
+// look ma, no Lombok!
 record Customer(Integer id, String name) {
 }
