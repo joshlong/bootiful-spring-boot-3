@@ -1,16 +1,17 @@
 
+type Query {
+
+ customers: [Customer]
+ customersByName(name:String): [Customer]
+
+}
 
 type Profile {
  id: ID
 }
 
-type Query {
- customers: [Customer]
- customersByName (name:String) : [Customer]
-}
-
 type Customer {
  id: ID
- name :String
+ name: String
  profile : Profile
 }

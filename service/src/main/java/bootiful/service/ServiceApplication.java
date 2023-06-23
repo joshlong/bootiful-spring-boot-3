@@ -1,19 +1,19 @@
-package com.example.service;
+package bootiful.service;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collection;
 
 @SpringBootApplication
 public class ServiceApplication {
@@ -22,13 +22,7 @@ public class ServiceApplication {
         SpringApplication.run(ServiceApplication.class, args);
     }
 
-
-    @Bean
-    ApplicationRunner applicationRunner(CustomerRepository repository) {
-        return args -> repository.findAll().forEach(System.out::println);
-    }
 }
-
 
 @Controller
 @ResponseBody
@@ -42,16 +36,18 @@ class CustomerHttpController {
         this.registry = registry;
     }
 
+
     @GetMapping("/customers/{name}")
-    Iterable<Customer> byName(@PathVariable String name) {
-        Assert.state(Character.isUpperCase(name.charAt(0)), "the name must start with an uppercase letter");
+    Collection<Customer> customersByName(@PathVariable String name) {
+        Assert.state(Character.isUpperCase(name.charAt(0)),
+                "the name must start with a capital letter!");
         return Observation
                 .createNotStarted("by-name", this.registry)
-                .observe(() -> repository.findByName(name));
+                .observe(() -> this.repository.findByName(name));
     }
 
     @GetMapping("/customers")
-    Iterable<Customer> customers() {
+    Collection<Customer> customers() {
         return this.repository.findAll();
     }
 }
@@ -68,11 +64,11 @@ class ErrorHandlingControllerAdvice {
     }
 }
 
-interface CustomerRepository extends CrudRepository<Customer, Integer> {
+interface CustomerRepository extends ListCrudRepository<Customer, Integer> {
+    Collection<Customer> findByName(String name);
 
-    Iterable<Customer> findByName(String name);
 }
 
-// look ma, no Lombok!
+// look ma, no Lombok!!
 record Customer(@Id Integer id, String name) {
 }
