@@ -1,11 +1,11 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.1.1'
-	id 'io.spring.dependency-management' version '1.1.0'
+	id 'org.springframework.boot' version '3.1.2'
+	id 'io.spring.dependency-management' version '1.1.2'
 	id 'org.graalvm.buildtools.native' version '0.9.23'
 }
 
-group = 'bootiful'
+group = 'com.example'
 version = '0.0.1-SNAPSHOT'
 
 java {
@@ -13,10 +13,12 @@ java {
 }
 
 repositories {
+	maven { url 'https://repo.spring.io/snapshot' }
 	mavenCentral()
 }
 
 dependencies {
+	implementation 'org.springframework.experimental.ai:spring-ai-openai-spring-boot-starter:0.2.0-SNAPSHOT'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-web'

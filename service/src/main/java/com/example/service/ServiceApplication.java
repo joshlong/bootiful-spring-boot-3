@@ -1,17 +1,16 @@
-package bootiful.service;
+package com.example.service;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.ai.client.AiClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.repository.ListCrudRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.Collection;
 
@@ -21,47 +20,51 @@ public class ServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(ServiceApplication.class, args);
     }
+}
 
+@ResponseBody
+@Controller
+class JokesController {
+
+    private final AiClient aiClient;
+
+    JokesController(AiClient aiClient) {
+        this.aiClient = aiClient;
+    }
+
+    @GetMapping("/jokes")
+    String jokes() {
+        return this.aiClient.generate("tell me a joke about seasons");
+    }
 }
 
 @Controller
 @ResponseBody
-class CustomerHttpController {
+class CustomerController {
 
     private final CustomerRepository repository;
+
     private final ObservationRegistry registry;
 
-    CustomerHttpController(CustomerRepository repository, ObservationRegistry registry) {
+
+    CustomerController(CustomerRepository repository, ObservationRegistry registry) {
         this.repository = repository;
         this.registry = registry;
     }
 
-
     @GetMapping("/customers/{name}")
     Collection<Customer> customersByName(@PathVariable String name) {
-        Assert.state(Character.isUpperCase(name.charAt(0)),
-                "the name must start with a capital letter!");
         return Observation
-                .createNotStarted("by-name", this.registry)
-                .observe(() -> this.repository.findByName(name));
+                .createNotStarted("by-name", this.registry) // metric
+                .observe(() -> repository.findByName(name)); // tracing
     }
 
     @GetMapping("/customers")
     Collection<Customer> customers() {
         return this.repository.findAll();
     }
-}
 
-@ControllerAdvice
-class ErrorHandlingControllerAdvice {
 
-    @ExceptionHandler
-    ProblemDetail handle(IllegalStateException ise, HttpServletRequest request) {
-        request.getHeaderNames().asIterator().forEachRemaining(System.out::println);
-        var pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST.value());
-        pd.setDetail(ise.getMessage());
-        return pd;
-    }
 }
 
 interface CustomerRepository extends ListCrudRepository<Customer, Integer> {
@@ -69,6 +72,6 @@ interface CustomerRepository extends ListCrudRepository<Customer, Integer> {
 
 }
 
-// look ma, no Lombok!!
+// look mom, no Lombok!
 record Customer(@Id Integer id, String name) {
 }

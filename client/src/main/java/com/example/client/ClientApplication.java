@@ -18,9 +18,7 @@ import org.springframework.web.reactive.function.client.support.WebClientAdapter
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,21 +31,18 @@ public class ClientApplication {
     }
 
     @Bean
-    RouteLocator gateway(RouteLocatorBuilder b) {
-        return b
+    RouteLocator gateway(RouteLocatorBuilder rlb) {
+        return rlb
                 .routes()
-                .route(rs -> rs
+                .route(rs ->
+                        rs
                                 .path("/proxy")
-                                .filters(f -> f
-                                                .setPath("/customers")
-                                                .retry(10)
-                                                .addResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-//                                        .requestRateLimiter(null)
-//                                        .circuitBreaker( null)
-//                                        .jsonToGRPC( null)
-//                                        .tokenRelay()
-//
+                                .filters(fs -> fs
+                                        .setPath("/customers")
+                                        .addResponseHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                                        .retry(10)
                                 )
+
                                 .uri("http://localhost:8080/")
                 )
                 .build();
@@ -59,16 +54,16 @@ public class ClientApplication {
     }
 
     @Bean
-    CustomerHttpClient customerHttpClient(WebClient.Builder builder) {
-        var wc = builder.baseUrl("http://localhost:8080/").build();
+    CustomerHttpClient client(WebClient.Builder builder) {
         return HttpServiceProxyFactory
-                .builder(WebClientAdapter.forClient(wc))
+                .builder(WebClientAdapter.forClient(
+                        builder.baseUrl("http://localhost:8080").build()
+                ))
                 .build()
                 .createClient(CustomerHttpClient.class);
     }
 
 }
-
 
 @Controller
 class CustomerGraphqlController {
@@ -80,41 +75,40 @@ class CustomerGraphqlController {
     }
 
     @QueryMapping
-    Flux<Customer> customers() {
-        return this.http.customers();
-    }
-
-    @QueryMapping
     Flux<Customer> customersByName(@Argument String name) {
         return this.http.customersByName(name);
     }
 
+
     @BatchMapping(typeName = "Customer")
-    Map<Customer, Profile> profile(List<Customer> customer) throws Exception {
-        // calls http profile service
-        var map = new HashMap<Customer, Profile>() ;
+    Map<Customer, Profile> profile(List<Customer> customer) {
+
+        var map = new HashMap<Customer ,Profile>() ;
         for (var c : customer)
-            map.put( c, new Profile(c.id()));
-        System.out.println("getting ALL profiles for [" + customer +
-                           "]");
-        return map;
+            map.put( c, new Profile(c.id())) ;
+        System.out.println("getting ALL customers " +customer);
+        return map ;
+    }
+
+    @QueryMapping
+    Flux<Customer> customers() {
+        return this.http.customers();
     }
 }
+
 
 record Profile(Integer id) {
 }
 
-interface CustomerHttpClient {
+// look mom, no Lombok!
+record Customer(Integer id, String name) {
+}
 
-    @GetExchange("/customers/{name}")
-    Flux<Customer> customersByName(@PathVariable String name);
+interface CustomerHttpClient {
 
     @GetExchange("/customers")
     Flux<Customer> customers();
 
-}
-
-
-// look ma, no Lombok!!
-record Customer(Integer id, String name) {
+    @GetExchange("/customers/{name}")
+    Flux<Customer> customersByName(@PathVariable String name);
 }
