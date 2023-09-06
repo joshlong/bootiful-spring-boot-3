@@ -1,14 +1,46 @@
 # Bootiful Spring Boot 3
 
-## servicve
-* start.spring.io (h2, jdbc, web, actuator)
+## service
+* start.spring.io (postgres, testcontainers, data jdbc, web, actuator)
 * java 17 
-   * 'technically superior' / 'morally superior' 
+   * 'technically superior' / 'morally superior'
+* configure java 21
+```
+java {
+    sourceCompatibility = '21'
+}
+
+graalvmNative {
+
+    binaries {
+        main {
+            buildArgs.add('--enable-preview')
+        }
+    }
+}
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/snapshot' }
+    maven { url 'https://repo.spring.io/milestone' }
+}
+```
+
 * records 
   * 'look ma! no lombok!'
 * service 
 * controller 
-  * make sure to do a `@Controller` + `@ResponseBody`, _not_ `RouterFunction` for consistency with the rest of the talk
+* this is pretty stock standard stuff. its been a while since weve talked. but things have definitely not stood still. lets pull in some AI.
+
+```
+implementation 'org.springframework.experimental.ai:spring-ai-openai-spring-boot-starter:0.2.0-SNAPSHOT'
+```
+* we'll create a controller to tell a Dr. Seussian story about Spring Boot in the amazing city of `$CITY_NAME`
+* ok, are we done? can we go to production? i think not! we have to turn this into a production worthy app. there are some low hanging fruit we need to consider. first, that dr. seuss endpoint took forever. itll block progress because it's using a thread. lets take advantage of Project Loom.  `spring.threads.virtual...enabled=true`  
 * error handling
   * show that the new code uses `HttpServletRequest` from `jakarta.\*`, not `javax.\*`
   * this is because Oracle ghosted the community
