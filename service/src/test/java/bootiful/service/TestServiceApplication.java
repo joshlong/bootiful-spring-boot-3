@@ -1,4 +1,4 @@
-package com.example.service;
+package bootiful.service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.devtools.restart.RestartScope;
@@ -12,8 +12,8 @@ import org.testcontainers.utility.DockerImageName;
 public class TestServiceApplication {
 
 	@Bean
-	@ServiceConnection
 	@RestartScope
+	@ServiceConnection
 	PostgreSQLContainer<?> postgresContainer() {
 		return new PostgreSQLContainer<>(DockerImageName.parse("postgres:latest"));
 	}
