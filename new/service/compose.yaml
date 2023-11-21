@@ -1,0 +1,13 @@
+services:
+  postgres:
+   image: 'postgres:latest'
+   environment:
+     - 'POSTGRES_DB=bp'
+     - 'POSTGRES_PASSWORD=bp'
+     - 'POSTGRES_USER=bp'
+   ports:
+     - '5432:5432'
+  zipkin:
+    image: 'openzipkin/zipkin:latest'
+    ports:
+      - '9411:9411'
