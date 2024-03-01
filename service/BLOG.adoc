@@ -86,7 +86,7 @@ So, we'll use `sealed` types. Sealed types are a new sort of access control or v
 
 In the example, we're explicitly stipulating that there are two implementations of `Loan` in the system: `SecuredLoan` and `UnsecuredLoan`. Classes are open for subclassing by default, which violates the guarantees implied by a sealed hierarchy. So, we explicitly make the `SecuredLoan` `final`. The `UnsecuredLoan` is implemented as a record, and is implicitly final.
 
-Records are Java's answer to tuples. They are tuples. It's just that Java is a nominal language: **things have names**. This tuple has a name, too: `UnsecuredLoan`.  Records give us a lot of power if we agree to the contract they imply. The core conceit of records is that the identity of the object is equal to the identity of the fields, they're called 'components', in a record. So in this case, the identity of the record is equal to the identity of the `interest` variable. If we agree to that, then the compiler can give us a constructor, it can give us storage for each of the components, it can give us a `toString` method, a `hashCode` method, and an `equals` method. And it'll give us accessors for the components in the constructor. Nice! _And_, it supports destructuring! The language knows how to extract out the state for the record.
+Records are Java's answer to tuples. They are tuples. It's just that Java is a nominal language: *things have names*. This tuple has a name, too: `UnsecuredLoan`.  Records give us a lot of power if we agree to the contract they imply. The core conceit of records is that the identity of the object is equal to the identity of the fields, they're called 'components', in a record. So in this case, the identity of the record is equal to the identity of the `interest` variable. If we agree to that, then the compiler can give us a constructor, it can give us storage for each of the components, it can give us a `toString` method, a `hashCode` method, and an `equals` method. And it'll give us accessors for the components in the constructor. Nice! _And_, it supports destructuring! The language knows how to extract out the state for the record.
 
 Now, let's say I wanted to display a message for each type of `Loan`. I'll code up a method. Here's the naïve first implementation.
 
@@ -169,25 +169,41 @@ This version uses smart switch expressions to return a value and pattern matchin
 
 
 
-So, back to our regularly scheduled programming. Let's remove all of this. It was just a distraction. We have a record for our entity.
+So, back to our regularly scheduled programming.  Add an interface for the Spring Data JDBC repository and a Spring MVC controller class. Then start the application up. Notice that this takes an exceedingly long period of time! That's because behind the scenes, it's using the Docker daemon to start up the PostgreSQL instance.
 
-Add an interface for the repository and a controller. Notice that this takes an exceedingly long period of time! That's because behind the scenes, it's using the Docker daemon to start up the PostgreSQL instance.
+But henceforth, we're going to use Spring Boot's  `DevTools`. You only need to recompile. If the app is running, and you're using Eclipse or Visual Studio Code, you will only need to save the file: CMD+S on a macOS. IntelliJ IDEA doesn't have a `Save` option; force a build with CMD+Shift+F9 on macOS. Nice.
 
-But henceforth, we're going to use DevTools. Only need to recompile. If the app is running and you're using Eclipse or VS Code, you will only need to save the file. But IntelliJ doesn't have a 'save' option. Force a build with cmd shift f9. Nice.
+Alright, we've got our HTTP web endpoint babysitting a database, but there's nothing in the database, so this will fail, surely. Let's initialize our database with some schema and some sample data.
 
-Alright, we've got our web endpoint babysitting a database, but there's nothing in the database, so this will fail, surely. Let's initialize our SQL db with some schema and sample data.
+Add `schema.sql` and `data.sql`.
 
-Add `schema.sql` and `data.sql`. Make sure to tell Spring Boot to run the SQL files on startup.
+.the DDL for our application, `schema.sql`
+[source,java]
+----
+include::src/main/resources/schema.sql[]
+----
 
-::show the SQL files::
 
-Nice. Now let's reload the app. Cmd shift f9. On my computer, that reload is about 1/3 the time it takes to start up the application itself.
+.some sample data for the application, `data.sql`
+[source,java]
+----
+include::src/main/resources/data.sql[]
+----
 
-It's up and running. Visit `http://localhost:8080/customers` to see the results. It worked. Of course, it worked! It was a demo.
+Make sure to tell Spring Boot to run the SQL files on startup by adding the following property to `application.properties`:
 
-This is all pretty stock standard stuff. You could've done something similar ten years ago. Mind you, the code would've been far more verbose. Java's improved by leaps and bounds since then. And of course, the speeds wouldn't have been comparable. And of course, the abstractions are better now. But you could've done something like this a long time ago!
+[source,properties]
+----
+spring.sql.init.mode=always
+----
 
-That said, things change. There are always new frontiers. Right now, the new frontier is AI. Because the search for good ol' AI wasn't hard enough.
+Reload the application: CMD+Shift+F9, on macOS. On my computer, that reload is about 1/3rd the time, or 66% less, than it takes to restart both the JVM and the application itself. Huge.
+
+It's up and running. Visit `http://localhost:8080/customers` to see the results. It worked! Of course, it worked. It was a demo. It was always going to work.
+
+This is all pretty stock standard stuff. You could've done something similar ten years ago. Mind you, the code would've been far more verbose. Java's improved by leaps and bounds since then. And of course, the speeds wouldn't have been comparable. And of course, the abstractions are better now. But you could've done something similar - a web application babysitting a database.
+
+Things change. There are always new frontiers. Right now, the new frontier is *Artificial Intelligence*, or A.I. A.I.: because the search for good ol' *Intelligence* clearly wasn't hard enough.
 
 AI is a huge industry, but what most people mean when they think of AI is _leveraging_ AI. You don't need to use Python to use large language models (LLMs), in the same way that most folks don't need to use C and write their own SQL dbs. You just need to integrate with the LLMs, and here Java is second to none for choice and power.
 
