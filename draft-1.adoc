@@ -2,31 +2,45 @@
 
 NB: the code is https://github.com/joshlong/bootiful-spring-boot-3/tree/main/02-2024/service[here].
 
-Hi, Spring fans! I'm Josh Long, and I work on the Spring team. I'm a Kotlin GDE and a Java Champion, and I'm of the opinion that there's never been a better time to be a Java and Spring Boot developer. I say that fully aware of where we stand in the span of things today. It's been 21+ years since the early releases of the Spring Framework and 11 years since the early releases of Spring Boot. This year marks 20 years since the Spring Framework and 10 years since Spring Boot. So, when I say there's never been a better time, bear in mind I've been in this for the better part of those decades. I love the JVM and Spring, and it's been amazing.
+Hi, Spring fans! I'm Josh Long, and I work on the Spring team. I'm a Kotlin GDE and a Java Champion, and I'm of the opinion that there's never been a better time to be a Java and Spring Boot developer. I say that fully aware of where we stand in the span of things today. It's been 21+ years since the earliest releases of the Spring Framework and 11+ years since the earliest releases of Spring Boot. This year marks 20 years since the Spring Framework and 10 years since Spring Boot. So, when I say there's never been a better time to be a Java and Spring developer, bear in mind I've been in this for the better part of those decades. I love Java and the JVM,  and I love Spring, and it's been amazing.
 
-But this is the best time. It's never been close. So, let's develop a new application, as always, by visiting start.spring.io, and we'll see what I mean. Click `add` and choose `spring web`, `spring data jdbc`, `openai`, `graalvm native support`, `docker compose`, `postgres`, and `devtools`.
+But this is the best time. It's never been close. So, let's develop a new application, as always, by visiting my second favorite place on the internet, after production, `start.spring.io`[https://start.spring.io], and we'll see what I mean. Click `Add Dependencies` and choose `Web`, `Spring Data JDBC`, `OpenAI`, `GraalVM Native Support`, `Docker Compose`, `Postgres`, and `Devtools`.
 
-Give it an artifact name. I called my service… "service". I'm great with names. I get that from my dad. My dad was also amazing with names. When I was a small boy, we had a tiny little white dog, and my father named him _white dog_. He was our family pet for years. But after around ten years, he disappeared. I'm not sure what happened to him after all. Maybe he got a job; I don't know. But then miraculously, another small white dog appeared tapping on our screen door. So we took him in, and my father named him 'too'. Or 'two'. I don't know. Anyway, _great_ with names. Though, that said, my mom tells me all the time that I'm very lucky she named me… That's probably true.
+Give it an artifact name. I called my service… "service". I'm great with names. I get that from my dad. My dad was also amazing with names. When I was a small boy, we had a tiny little white dog, and my father named him _White Dog_. He was our family pet for years. But after around ten years, he disappeared. I'm not sure what became of him after all. Maybe he got a job; I don't know. But then miraculously, another small white dog appeared tapping on our home's screen door. So we took him in, and my father named him _Too_. Or _Two_. I don't know. Anyway, _great_ with names. That said, my mom tells me all the time that I'm very lucky she named me... And, yah, that's probably true.
 
 Anyway, choose Java 21. This part is key. You can't use Java 21 if you don't use Java 21. So, you need Java 21. But we are also going to use GraalVM for its native image capabilities.
 
+Don't have Java 21 installed? Download it! Use the fantastic https://sdkman.io[SDKMAN] tool: `sdk install java 21-graalce`. And then make it your default: `sdk default java 21-graalce`. Open a new shell. Download the `.zip` file.
+
 Java 21 is amazing. It's a far sight better than Java 8. It's technically superior in every way. It's faster, more robust, more syntax-rich. It's also morally superior. You won't like the look of shame and disgrace in your children's eyes when they see you're using Java 8 in production. Don't do it. Be the change you want to see in the world. Use Java 21.
 
-Don't have Java 21 installed? Download it! Use the fantastic sdkman.io tool: `sdk use java 21-graalce`. And then make it your default, `sdk default java 21-graalce`. Open a new shell. Download the zip file.
+You'll get a zip file. Unzip it and open it in your IDE.
 
-You'll get a zip file. Unzip it and open it in your IDE. I'm using IntelliJ IDEA, and it installs a command-line tool called `idea`. You can use it to open the project. `cd` into the directory and then run `idea build.gradle`. Or, if you chose Maven, choose `idea pom.xml`.
+I'm using IntelliJ IDEA, and it installs a command-line tool called `idea`.
 
-Now then, this is a new application, and it's going to be talking to a database. It's a data-centric application. On the initializer, we configured Postgres, but now we need to connect to it. The last thing we want is a long README with a million steps to development. We want to live that git-clone-run life.
+[source,shell]
+----
+cd service
+idea build.gradlew
+# idea pom.xml if you're using Apache Maven
+----
 
-To that end, the Spring Initializer generated a `compose.yml` file that contains a definition for Postgres, the SQL database. And, even better, Spring Boot is configured to automatically launch that container when the application starts up. No need to configure connectivity details like `spring.datasource.url`, etc. It's all done with autoconfiguration. Ya love to see it!
+If you're using  Visual Studio Code, be sure to install the https://marketplace.visualstudio.com/items?itemName=vmware.vscode-boot-dev-pack[_Spring Boot Extension Pack_] on the _Visual Studio Code Marketplace_.
 
-And, never wanting to leave a mess, Spring Boot will shut down the Docker containers on application shutdown, too.
+This  new application is going to be talking to a database; it's a data-centric application. On the _Spring Initializr_, we added support for  PostgreSQL, but now we need to connect to it. The last thing we want is a long `README.md` with a section titled, _A Hundred Easy Steps to Development_. We want to live that _`git clone` &amp; Run_ life!
 
-We want to move as quickly as possible. To that end, we've added DevTools to the build on the Spring Initializr. It's allowing us to go quickly. The core conceit here is that restarting Java is pretty slow. Restarting Spring is really quick, however. So, what if we could just take note of newly compiled class files, load them into the classloader, and then create a new Spring application context, discarding the old one? That's exactly what Spring's DevTools do. Run it during development and see your restart time diminish by huge fractions.
+To that end, the Spring Initializr generated a https://github.com/docker/compose[Docker Compose] `compose.yml` file that contains a definition for Postgres, the amazing SQL database.
 
-This works because, again, Spring is super quick to startup. _Except_, that is, when you are launching
+[source,yaml]
+----
+include::02-2024/service/compose.yml[]
+----
 
-a PostgreSQL database on each restart. I love PostgreSQL, but, uh, yeah, it's not meant to be constantly restarted each time you're tweaking method names and HTTP endpoint paths and CSS and such. So, let's configure it to stay running.
+And, even better, Spring Boot is configured to automatically run the Docker Compose (`docker compose up`) configuration  when the Spring Boot application starts up. No need to configure connectivity details like `spring.datasource.url` and `spring.datasource.password`, etc. It's all done with Spring Boot's amazing  autoconfiguration. Ya love to see it! And, never wanting to leave a mess, Spring Boot will shut down the Docker containers on application shutdown, too.
+
+We want to move as quickly as possible. To that end, we selected DevTools on the _Spring Initializr_. It'll allow us to move quickly. The core conceit here is that restarting Java is pretty slow. Restarting Spring, however, is really quick. So, what if we had a process monitoring our project folder, and that could  take note of newly compiled `.class` files, load them into the classloader, and then create a new Spring `ApplicationContext`, discarding the old one, and giving us the appearance of a live reload? That's exactly what Spring's DevTools do. Run it during development and see your restart time diminish by huge fractions!
+
+This works because, again, Spring is super quick to startup... _Except_, that is, when you are launching a PostgreSQL database on each restart. I love PostgreSQL, but, uh, yeah, it's not meant to be constantly restarted each time you're tweaking method names and HTTP endpoint paths and CSS and such. So, let's configure it to stay running.
 
 :: show docker-compose lifecycle property ::
 
