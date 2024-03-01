@@ -66,9 +66,29 @@ But things have changed. These days, the vector by which we express change in a 
 
 Java has evolved to support these new patterns. Let's take a look at four key features - records, pattern matching, smart switch expressions, and sealed types - to see what I mean. Suppose we work in a heavily regulated industry, like finance.
 
-Imagine we have an interface called `Loan`. Obviously, loans are heavily regulated financial instruments. We don't want somebody coming along and adding an anonymous inner class implementation of the `Loan` interface, sidestepping the validation and protection we've worked so earnestly to build into the system. So, we'll use `sealed` types.
+Imagine we have an interface called `Loan`. Obviously, loans are heavily regulated financial instruments. We don't want somebody coming along and adding an anonymous inner class implementation of the `Loan` interface, sidestepping the validation and protection we've worked so earnestly to build into the system.
 
-Sealed types are a new sort of access control or visibility modifier.  Now, let's say I wanted to display a message for each type of `Loan`. I'll code up a method. Here's the naïve first implementation.
+So, we'll use `sealed` types. Sealed types are a new sort of access control or visibility modifier.
+
+[source,java]
+----
+
+    sealed interface Loan permits SecuredLoan, UnsecuredLoan {
+	}
+
+	record UnsecuredLoan(float interest) implements Loan {
+	}
+
+	final class SecuredLoan implements Loan {
+	}
+
+----
+
+In the example, we're explicitly stipulating that there are two implementations of `Loan` in the system: `SecuredLoan` and `UnsecuredLoan`. Classes are open for subclassing by default, which violates the guarantees implied by a sealed hierarchy. So, we explicitly make the `SecuredLoan` `final`. The `UnsecuredLoan` is implemented as a record, and is implicitly final.
+
+Records are Java's answer to tuples. They are tuples. It's just that Java is a nominal language: **things have names**. This tuple has a name, too: `UnsecuredLoan`.  Records give us a lot of power if we agree to the contract they imply. The core conceit of records is that the identity of the object is equal to the identity of the fields, they're called 'components', in a record. So in this case, the identity of the record is equal to the identity of the `interest` variable. If we agree to that, then the compiler can give us a constructor, it can give us storage for each of the components, it can give us a `toString` method, a `hashCode` method, and an `equals` method. And it'll give us accessors for the components in the constructor. Nice! _And_, it supports destructuring! The language knows how to extract out the state for the record.
+
+Now, let's say I wanted to display a message for each type of `Loan`. I'll code up a method. Here's the naïve first implementation.
 
 [source,java]
 ----
@@ -109,7 +129,7 @@ We can clean it up. Let's take advantage of pattern matching, like this:
 
 -----
 
-Better. Note that we're using pattern matching to match the shape of the object and then extract the definitively castable thing into a variable, `usl`. We don't even really need the `usl` variable, though, do we. Instead, we want to dereference the `interest` variable. So we can change the pattern matching to extract that variable, like this.
+Better. Note that we're using pattern matching to match the shape of the object and then extract the definitively cast-able thing into a variable, `usl`. We don't even really need the `usl` variable, though, do we. Instead, we want to dereference the `interest` variable. So we can change the pattern matching to extract that variable, like this.
 
 
 
@@ -147,13 +167,7 @@ Likewise, I have this value stored in a variable, `message`, and I'm assigning i
 
 This version uses smart switch expressions to return a value and pattern matching. If you comment out one of the branches, the compiler will bark, because - thanks to sealed types - it knows that you haven't exhausted all possible options. Nice! The compiler is doing a lot of work for us! The result is both cleaner and more expressive. Mostly.
 
-Records are Java's answer to tuples. They are tuples. It's just Java is a nominal language; things have names. This tuple has a name, too. And records give us a lot of power if we agree to the contract they imply. The core conceit of records is that the identity of the object is equal to the identity of the fields - they're called 'components' - in a record. So in this case, the identity of the record is equal to the identity of the `interest` variable. If we agree to that, then the compiler can give us a constructor, it can give us storage for each of the components, it can give us a `toString` method, a `hashCode` method, and an `equals` method. And it'll give us accessors for the components in the constructor. Nice!
 
-AND, it can support destructuring! So let's revisit the example to rework it so that we hoist out the value of the interest field, ignoring the rest of the class
-
-. This is an example of records and pattern matching working together. Nice! The result is _much cleaner_!
-
-::show the finished result::
 
 So, back to our regularly scheduled programming. Let's remove all of this. It was just a distraction. We have a record for our entity.
 
