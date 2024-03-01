@@ -231,13 +231,17 @@ include::src/main/java/com/example/service/StoryController.java[]
 
 Pretty straightforward! Inject Spring AI's `ChatClient`, use it to send a request to the LLM, get the response, and return it as JSON to the HTTP client.
 
-CMD+Shift+F9 and then visit the endpoint. The LLM might take a few seconds to produce a response, so get that cup of coffee,  water, or whatever ready for a quick sip. There it is! We live in an age of miracles! The age of the freaking singularity! You can do anything now.
+You'll need to configure your connection to OpenAI's API with a property, `spring.ai.openai.api-key=`. I exported it as an environment variable, `SPRING_AI_OPENAI_API_KEY`, before I ran the program. I won't reproduce my key here. Forgive me for not leaking my API credential.
 
-Here's what I got when I ran it:
+CMD+Shift+F9 to reload the application, and then visit the endpoint: `http://localhost:8080/story`. The LLM might take a few seconds to produce a response, so get that cup of coffee, glass of water, or whatever, ready for a quick but satisfying sip.
 
-::show the output of a given run::
 
-But it did take a few seconds. Which, again, I don't begrudge the computer that time. It did a splendid job! I couldn't do that any faster. Just look at the story it rendered!
+.the JSON response in my browser, with a JSON formatter plugin enabled
+image::story-time-ai-response.png[]
+
+There it is! We live in an age of miracles! The age of the freaking singularity! You can do anything now.
+
+But it did take a few seconds, didn't it? Which, again, I don't begrudge the computer that time. It did a splendid job! I couldn't do that any faster. Just look at the story it rendered!
 
 But, it did take a while. And that has scalability implications for our applications.
 
