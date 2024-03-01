@@ -3,17 +3,17 @@ the code is [here on my Github account:
 `github.com/joshlong/bootiful-spring-boot-3`](https://github.com/joshlong/bootiful-spring-boot-3/tree/main/service).
 :::
 
-Hi, Spring fans! I'm Josh Long, and I work on the Spring team. I'm a
-Kotlin GDE and a Java Champion, and I'm of the opinion that there's
-never been a better time to be a Java and Spring Boot developer. I say
-that fully aware of where we stand in the span of things today. It's
-been 21+ years since the earliest releases of the Spring Framework and
-11+ years since the earliest releases of Spring Boot. This year marks 20
-years since the Spring Framework and 10 years since Spring Boot. So,
-when I say there's never been a better time to be a Java and Spring
-developer, bear in mind I've been in this for the better part of those
-decades. I love Java and the JVM, and I love Spring, and it's been
-amazing.
+Hi, Spring fans! I'm [Josh Long](https://spring.io/team/joshlong), and I
+work on the Spring team. I'm a Kotlin GDE and a Java Champion, and I'm
+of the opinion that there's never been a better time to be a Java and
+Spring Boot developer. I say that fully aware of where we stand in the
+span of things today. It's been 21+ years since the earliest releases of
+the Spring Framework and 11+ years since the earliest releases of Spring
+Boot. This year marks 20 years since the Spring Framework and 10 years
+since Spring Boot. So, when I say there's never been a better time to be
+a Java and Spring developer, bear in mind I've been in this for the
+better part of those decades. I love Java and the JVM, and I love
+Spring, and it's been amazing.
 
 But this is the best time. It's never been close. So, let's develop a
 new application, as always, by visiting my second favorite place on the
