@@ -72,16 +72,7 @@ So, we'll use `sealed` types. Sealed types are a new sort of access control or v
 
 [source,java]
 ----
-
-    sealed interface Loan permits SecuredLoan, UnsecuredLoan {
-	}
-
-	record UnsecuredLoan(float interest) implements Loan {
-	}
-
-	final class SecuredLoan implements Loan {
-	}
-
+include::src/main/java/com/example/service/Loan.java[]
 ----
 
 In the example, we're explicitly stipulating that there are two implementations of `Loan` in the system: `SecuredLoan` and `UnsecuredLoan`. Classes are open for subclassing by default, which violates the guarantees implied by a sealed hierarchy. So, we explicitly make the `SecuredLoan` `final`. The `UnsecuredLoan` is implemented as a record, and is implicitly final.
@@ -182,7 +173,6 @@ Add `schema.sql` and `data.sql`.
 ----
 include::src/main/resources/schema.sql[]
 ----
-
 
 .some sample data for the application, `data.sql`
 [source,java]
@@ -334,46 +324,77 @@ Anyway, what I'm trying to say is that Java is already _amazing_. I think this i
 
 Garbage collection, well we all know what it is. Heck, https://www.whitehouse.gov/wp-content/uploads/2024/02/Final-ONCD-Technical-Report.pdf[even the White House appreciates garbage-collected, memory-safe languages] like Java in its recent report on securing software to secure the building blocks of cyberspace.
 
-The Java programming language garbage collector lets us write mediocre software and sort of _get away_ with it. It's dope! That said, I do take issue with the notion that it is the _original_ Java   garbage collector! That honor belongs elsewhere, like perhaps https://twitter.com/jtannady/status/981547257479778307?lang=en[with Jesslyn].
+The Java programming language garbage collector lets us write mediocre software and sort of _get away_ with it. It's dope! That said, I do take issue with the notion that it is the _original_ Java garbage collector! That honor belongs elsewhere, like perhaps https://twitter.com/jtannady/status/981547257479778307?lang=en[with Jesslyn].
 
-And the JIT is another amazing piece of kit. It analyses frequently accessed code paths in your application and turns them into operating system and architecture-specific native code. It can only do this for some of your code though. It needs to know that the types that are in play when you compile the code are the only types that will be in play when you run the code. And some things in Java - a very dynamic language with a runtime that's more akin to that of JavaScript, Ruby, and Python - allow Java programs to do things that would violate this constraint. Things like serialization, JNI, reflection, resource loading, and JDK proxies. Remember, it's possible, with Java, to have a `String` that has as its contents a Java source code file, compile that string into a .class file on the filesystem, load the .class file into the classloader, reflectively create an instance of that class, and then - if that class is an interface - to create a JDK proxy of that class. And if that class implements Serializable - to write that class over a network socket and load it on another JVM. All without ever having an explicit typed reference to anything besides `java.lang.Object`! It's an amazing language, and this dynamic nature makes it a very productive language. But it also frustrates the JIT's attempt at optimizations.
+And the JIT is another amazing piece of kit. It analyses frequently accessed code paths in your application and turns them into operating system and architecture-specific native code. It can only do this for some of your code though. It needs to know that the types that are in play when you compile the code are the only types that will be in play when you run the code. And some things in Java - a very dynamic language with a runtime that's more akin to that of JavaScript, Ruby, and Python - allow Java programs to do things that would violate this constraint. Things like serialization, JNI, reflection, resource loading, and JDK proxies. Remember, it's possible, with Java, to have a `String` that has as its contents a Java source code file, compile that string into a `.class` file on the filesystem, load the `.class` file into the `ClassLoader`, reflectively create an instance of that class, and then - if that class is an interface - to create a JDK proxy of that class. And if that class implements `java.io.Serializable`, it's possible to write that class instance over a network socket and load it on another JVM.  And you can do all  of that without ever having an explicit typed reference to anything beyond `java.lang.Object`! It's an amazing language, and this dynamic nature makes it a very productive language. It also frustrates the JIT's attempt at optimizations.
 
-But still, it does an amazing job where it can. And the results speak for themselves. So, one wonders, why couldn't we proactively JIT the whole program? Ahead of time. And we can. There's an OpenJDK distribution called GraalVM that has a number of niceties that extend the OpenJDK release with extra tools like the native image compiler. The native image compiler is dope. But this native image compiler has the same constraints. It can't do its magic for very dynamic things. Which is a problem. As most code - your unit testing libraries, your web frameworks, your ORMs, your logging libraries… everything! - use one or all of those dynamic behaviors.
+Still, the JIT does an amazing job where it can. And the results speak for themselves. So, one wonders: why couldn't we proactively JIT the whole program? Ahead of time? And we can. There's an OpenJDK distribution called https://graalvm.org[GraalVM] that has a number of niceties that extend the OpenJDK release with extra tools like the `native-image` compiler. The native image compiler is dope. But this native image compiler has the same constraints. It can't do its magic for very dynamic things. Which is a problem. As most code - your unit testing libraries, your web frameworks, your ORMs, your logging libraries… everything! - use one or all of those dynamic behaviors.
 
-There is an escape hatch. You can furnish configuration in the form of `.json` files to the GraalVM compiler. These .json files have two problems.
+There is an escape hatch. You can furnish configuration in the form of `.json` files to the GraalVM compiler in a well-known directory: `src/main/resources/META-INF/native-image/$groupId/$artifactId/\*.json`. These `.json` files have two problems.
 
-First, it sounds stupid. I don't like saying the word "JAY-SAWN". As an adult, I can't believe we say these things to each other. I speak French, and in French, you'd pronounce it '.gison' (jeeesã). Much nicer. The Hokkien language has a word - _gingsong_ (happiness), which also could work. So you could have .gingsong. Pick your team! Either way, it's a big improvement over `.json`. I'm team `.gison`, but it doesn't really matter.
+First, the word "JSON" sounds stupid. I don't like saying the word "JAY-SAWN". As an adult, I can't believe we say these things to each other. I speak French, and in French, you'd pronounce it _jeeesã_. So, `.gison`. Much nicer. The Hokkien language has a word - _gingsong_ (happiness), which also could work. So you could have .gingsong. Pick your team! Either way,  `.json` should not stand. I'm team `.gison`, but it doesn't matter.
 
-That's the first problem. The second problem is that, well, there's just so much darned .json required! Again, just think about all the places it's required! It's endless. I don't have time to write artisanally handcrafted configuration files for every program. I don't even have enough time to finish this blog!
+The second problem is that, well, there's just so much darned of it that's required! Again, just think about all the places where your programs do these fun, dynamic things like  reflection, serialization, JDK proxies, resource loading, and JNI! It's endless. Your web frameworks. Your testing libraries. Your data access technologies. I don't have time to write artisanal, handcrafted configuration files for every program. I don't even have enough time to finish this blog!
 
-So, we'll use the Spring Boot 3 AOT engine instead. The AOT engine analyses the beans in your Spring Application and emits the requisite .json files for you. Nice! There's even a whole component model that you can use that extends Spring to compile time. I won't get into all of that here, but you can read my link:[free e-book] or watch my free YouTube video introducing all things link:[Spring and AOT].
+So, instead, we'll use the Spring Boot  ahead-of-time (AOT) engine introduced in 3.0. The AOT engine analyses the beans in your Spring application and emits the requisite  configuration files for you. Nice! There's even a whole component model that you can use that extends Spring to compile time. I won't get into all of that here, but you can read my https://tanzu.vmware.com/content/white-papers/spring-boot-3[free e-book] or watch my free YouTube video introducing all things   https://www.youtube.com/watch?v=TOfYlLjXufw[Spring and AOT]. It's basically the same content, just different ways to consume it.
 
-So let's kick off that build: `./gradlew nativeCompile`
+So let's kick off that build with Gradle, `./gradlew nativeCompile`, or `./mvnw -Pnative native:compile` if you're using Apache Maven. You might want to skip tests on this one... This build will take a little while. Remember, it's doing an analysis of everything in your codebase - be it the libraries on the classpath, the JRE, and the classes in your code itself - to determine which types it should preserve and which it should throw out. The result is a lean, mean, lightning-fast runtime machine, but at the cost of a very, _very_ slow compilation time.
 
-This will take a little while. Remember, it's doing an analysis of everything in your codebase - be it the libraries on the classpath, the JRE, and your code itself - to determine which types it should preserve and which it should throw out. The result is
+It takes so long, in fact, that it kinda just gums up my flow. It stops me dead in my tracks, waiting. I am like the platform threads from earlier on, in this very blog: _blocked_! I get bored. Waiting. Waiting. I now finally understand this https://xkcd.com/303/[famous XKCD cartoon].
 
-a lean mean lightning-fast binary - but at the cost of a very slow compilation.
+Sometimes I start to hum music. Or theme songs. Or elevator music. You know what https://en.wikipedia.org/wiki/Elevator_music[elevator music] sounds like, right? Ceaseless, endless. So, I thought, wouldn't it be great if everyone heard elevator music, as well?  https://github.com/oracle/graal/issues/5327[So I asked].  I got some great responses.
 
-It takes so long, in fact, that it kinda just gums up the works. Stops me dead in my tracks, waiting. I'm, like the platform threads of earlier on in this very blog, _blocked_. And I get bored. Waiting. Waiting. Sometimes I start to hum music. Or theme songs. Or elevator music. You know what elevator music sounds like, right? Ceaseless, endless. So, I thought, wouldn't it be great if everyone heard elevator music? link:[So I asked.] and I got some great responses.
+One suggested, from our friend  that we should play this elevator music from the soundtrack to the Nintendo 64 video game to the first Pierce Brosnan outing as James Bond, _Goldeneye_. I like it.
+
+._Goldeneye_ had some amazing elevator music!
+image::adinn-elevator-music.png[]
 
 One response suggested that having a beeping sound would be useful. Couldn't agree more. My stupid microwave will make a _ding!_ sound when it's done. Why couldn't my multi-million line compiler?
 
-Another suggested that we should play this elevator music from the soundtrack to the Nintendo 64 video game to the first Pierce Brosnan outing as James Bond, _Goldeneye_. I like it.
+._DING!_
+image::ivan-beeps.png[]
 
-And then we got this response, from another one of my favorite doctors, Dr. Niephaus, who works on the GraalVM team. He said that adding elevator music would only just fix the symptoms, and not the cause of the problem, which is making GraalVM even more efficient in terms of time and memory. Ok. But he did share this promising prototype!
 
-::show the tweet with the native image compiler being updated::
+And then we got this response, from another one of my favorite doctors, https://twitter.com/fniephaus[Dr. Niephaus], who works on the GraalVM team. He said that adding elevator music would only just fix the symptoms, and not the cause of the problem, which is making GraalVM even more efficient in terms of time and memory.
 
-I'm sure it'll get merged any day now…
+image::doctor-niephaus.png[]
 
-Anyway… if you check the compilation, it should be done now. It's in the `./build/native/nativeCompile/` folder, and it's called `service`.
+Ok. But he did share this promising prototype!
 
-Run it. It'll fail because, again - we're living that git-clone-run lifestyle! We didn't specify any connectivity credentials! So, run it with the following environment variables specified:
+image::graalvm-prototype.png[]
 
-:: show the `run.sh` contents ::
+I'm sure it'll get merged any day now...
 
-On my machine, it starts up in ~100ms! Nice! But I don't really care all that much about that because this is a standalone service. What I care about is the resident set size. Note the process identifier - it'll be in the logs - and then use `ps -oi rss &lt;PID&gt;`. It'll dump out a number in kilobytes, so divide by a thousand and you'll get the number in megabytes. On my machine, it takes just over 100MB to run. That's amazing!
+Anyway! If you check the compilation, it should be done now. It's in the `./build/native/nativeCompile/` folder, and it's called `service`. On my machine, the compilation took 52 seconds. Yeesh!
 
-We have a program that is concise as can be, easy to develop and iterate on. And it uses virtual threads to give us unparalleled scalability. It runs as a standalone, self-contained operating system-specific native image. It supports the freaking singularity! Amazing! We live in an amazing time. And there's never been a better time to be a Java and Spring developer. I hope I've so persuaded you, too.
+Run it. It'll fail because, again, we're living that `git clone` &amp; run lifestyle! We didn't specify any connectivity credentials! So, run it with   environment variables specifying your SQL database connectivity details. Here's the script I used on my Machine. This will work only on a Unix-flavored operating system, and works for either Maven or Gradle.
 
-If you enjoyed this blog, I hope you'll subscribe to our YouTube channel and of course, you can find me on Twitter here. Thanks.
+[source,shell]
+----
+#!/usr/bin/env bash
+
+export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost/mydatabase
+export SPRING_DATASOURCE_PASSWORD=secret
+export SPRING_DATASOURCE_USERNAME=myuser
+
+SERVICE=.
+MVN=$SERVICE/target/service
+GRADLE=$SERVICE/build/native/nativeCompile/service
+ls -la $GRADLE && $GRADLE || $MVN
+
+----
+
+On my machine, it starts up in ~100ms! Like a rocket! But I don't really care all that much about that because this is a standalone, long-lived service. What I care about is the https://en.wikipedia.org/wiki/RSS[Resident Set Size (RSS)]. Note the process identifier (PID) - it'll be in the logs. If the PID is 5, then get the RSS like this using the `ps` utility on most Unixes:
+
+[source,shell]
+----
+ps -o rss 5
+----
+
+It'll dump out a number in kilobytes, so divide by a thousand, and you'll get the number in megabytes. On my machine, it takes just over 100MB to run. You can't run Slack in that tiny amount of RAM. I bet you've got individual browser tabs in Chrome taking that much.
+
+So, we have a program that is as concise as can be while being easy to develop and iterate on. And it uses virtual threads to give us unparalleled scalability. It runs as a standalone, self-contained, operating system and architecture-specific native image. Oh! And, it supports the freaking singularity!
+
+We   live in an amazing time.  There's never been a better time to be a Java and Spring developer. I hope I've so persuaded you, too.
+
+If you enjoyed this blog, I hope you'll subscribe to our https://youtube.com/@springsourcedev[YouTube channel], where I have new videos every week on the https://bit.ly/spring-tips-playlist[_Spring Tips_]. And, of course, you can find my https://biodrop.io/joshlong[Twitter/X, website, YouTube channel, books, Podcast, and much more here]. Thank you!
