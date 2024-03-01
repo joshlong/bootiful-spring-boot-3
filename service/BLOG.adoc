@@ -235,93 +235,108 @@ You'll need to configure your connection to OpenAI's API with a property, `sprin
 
 CMD+Shift+F9 to reload the application, and then visit the endpoint: `http://localhost:8080/story`. The LLM might take a few seconds to produce a response, so get that cup of coffee, glass of water, or whatever, ready for a quick but satisfying sip.
 
-
 .the JSON response in my browser, with a JSON formatter plugin enabled
 image::story-time-ai-response.png[]
 
 There it is! We live in an age of miracles! The age of the freaking singularity! You can do anything now.
 
-But it did take a few seconds, didn't it? Which, again, I don't begrudge the computer that time. It did a splendid job! I couldn't do that any faster. Just look at the story it rendered!
+But it did take a few seconds, didn't it? I don't begrudge the computer that time! It did a splendid job! I couldn't do that any faster. Just look at the story it generated! It's a work of art.
 
-But, it did take a while. And that has scalability implications for our applications.
+But it did take a while. And that has scalability implications for our applications. Behind the scenes when we make a call to our LLM, we're making a network call. Somewhere, deep in the bowels of the code, there's a `java.net.Socket` from which we've obtained a  `java.io.InputStream` that represents the `byte[]` data coming from the service. I don't know if you remember using `InputStream` directly. Here's an example:
 
-Remember, behind the scenes when we make a call to our LLM, we're making a network call. Somewhere, deep in the bowels of the code, there's a java.net.Socket from which we've obtained an `InputStream` that represents the bytes coming from the service. I don't know if you remember using InputStream directly. Here's an example:
+// :: show a while loop reading from an InputStream one byte at a time::
+[source,java]
+----
+    try (var is = new FileInputStream("afile.txt")) {
+        var next = -1;
+        while ((next = is.read()) != -1) {
+            next = is.read();
+            // do something with read
+        }
+    }
+----
 
-:: show a while loop reading from an InputStream one byte at a time::
+See that part where we read bytes in from the `InputStream` by calling `InputStream.read`? We call that a *blocking operation*. If we call `InputStream.read` on line four, then we must wait until the call returns until we can get to line five.
 
-See that part where we read bytes in from the inputStream by calling `InputStream#read`? We call that a blocking operation. If we call `InputStream#read` on line four, then we must wait until the call returns until we can get to line five.
+What if the service to which we're connecting   simply returns too much data? What if the service is down? What if it never returns? What if we're stuck, waiting, in perpetuity? _What if_?
 
-What if there's simply too much data? What if the service is down? What if it never returns? What if we're stuck waiting in perpetuity? _What if_?
+This is _tedious_ if it only happens once. But it's an existential threat for our services if it can happen on every thread in the system used to handle HTTP requests. This happens a lot. It's the reason why it's possible to log in to an otherwise unresponsive HTTP service and find that the CPU is basically asleep - idle! - doing absolutely nothing or little at all. All the threads in the thread pool are stuck in a wait state waiting for something that's not coming.
 
-This is tedious if it only happens once. But it's an existential problem for our services if it can happen on every thread in the system used to service HTTP requests! This happens a lot. It's the reason why it's possible to log in to an unresponsive web server and find that the CPU is basically asleep, doing absolutely nothing or little at all. All the threads in the thread pool are stuck in a wait state waiting for something that's not coming.
-
-This is a huge waste of the valuable CPUs we paid for. And the best-case scenario is still not good. Even if it will eventually return, it still means that the thread on which that request is being handled is unavailable to anything else in the system. It's just idling, monopolizing that thread so nobody else in the system can use it. This wouldn't be an issue if threads were cheap and infinite. But they're not. For most of Java's lifetime, each new thread was paired 1:1 with an operating system thread. And it was not cheap. There's a certain amount of bookkeeping associated with each thread. 1 to 2 megabytes. So you can't create lots of threads and you're wasting those threads, too!
+This is a huge waste of the valuable CPUs capacity we have paid for. And the best-case scenario is still not good. Even if the method will eventually return, it still means that the thread on which that request is being handled is unavailable to anything else in the system. The method is monopolizing that thread so nobody else in the system can use it. This wouldn't be an issue if threads were cheap and abundant. But they're not. For most of Java's lifetime, each new thread was paired one to one with an operating system thread. And it was not cheap. There's a certain amount of bookkeeping associated with each thread. One to two megabytes. So you won't be able to create many threads, and you're wasting what few threads you do have. The horror! Who needs sleep anyway?
 
 There's got to be a better way.
 
-You can use non-blocking IO. Things like the hemorrhoid-inducingly complex Java NIO library. This is an option, but not a fun one. Most of us don't think in terms of non-blocking IO, or regular IO, anyway. We live at higher rungs of the abstraction stack. So we could use reactive programming. I love reactive programming. I even wrote a book about it (link to _Reactive Spring_). But it's not exactly obvious how to make that work if you're not used to thinking functionally. It's a different paradigm and implies a rewrite of your code.
+You can use non-blocking IO. Things like the hemorrhoid-inducing and complex Java NIO library. This is an option, in the same way that living with a family of skunks is an option: it stinks! Most of us don't think in terms of non-blocking IO, or regular IO, anyway. We live at higher rungs on the abstraction ladder.  We could use reactive programming. I _love_ reactive programming. I even wrote a book about it - _Reactive Spring_[https://reactivespring.io]. But it's not exactly obvious how to make that work if you're not used to thinking like a functional programmer. It's a different paradigm and implies a rewrite of your code.
 
-What if we could have our non-blocking cake and eat it too?
+What if we could have our non-blocking cake and eat it too? With https://openjdk.org[Java 21], now we can! There's a new feature called virtual threads that makes this stuff a ton easier! If you do something blocking on one of these new _virtual threads_, the runtime will detect that you're doing a blocking thing - like `java.io.InputStream.read`, `java.io.OutputStream.write`, and `java.lang.Thread.sleep` - and move that blocking, idle activity off of the thread and into RAM. Then, it'll basically set an egg timer for sleep, or monitor the file descriptor for IO, and let the runtime repurpose the thread for something else in the meantime. When the blocking action has finished, the runtime moves it back onto a thread and lets it continue from where it started, all with almost no changes to your code. It's hard to understand, so let's look at it by way of an example. I  shamelessly  _borrowed_ this example  from Oracle Developer Advocate https://twitter.com/josepaumard[José Paumard].
 
-With Java 21, now we can! There's a new feature called virtual threads that makes this stuff a ton easier!
+.this example demonstrates creating 1,000 threads and sleeping for 400 milliseconds on each one, while noting the name of the first of those 1,000 threads.
+[source,java]
+----
+include::src/main/java/com/example/service/Threads.java[]
+----
 
-If you do something blocking on a new _virtual thread_, the runtime will detect that you're doing a blocking thing - like `InputStream#read`, `OutputStream#write`, and `Thread.sleep` - and move that blocking, idle activity off of the thread and into RAM. Then, it'll basically set an egg timer or monitor the file descriptor and let the runtime repurpose the thread for something else. When the blocking action has finished, the runtime moves it back onto a thread and lets it continue. It's hard to understand, so let's look at it by way of an example. I stole this example shamelessly from Oracle Developer Advocate José Paumard.
 
-:: show the threads example ::
+We're using the `Thread.ofPlatform` factory method to create regular  ol' platform threads, identical in nature to the threads we've created basically since Java's debut in the 1990's. The program creates 1,000 threads. In each thread, we sleep for 100 milliseconds, four times. In between, we test if we're on the first of the 1000 threads, and if we are, we note the current thread's name by adding it to a set. A set dedupes its elements; if the same name appears more than once, there'll still only be one element in the set.
 
-On line __REPLACE_ME__, the constructor we're using creates regular standard old platform threads, identical in nature to the threads we've created basically since Java's debut in the '90s. The program creates 1000 threads. In each thread, we sleep for 100 milliseconds, four times. In between, we test if we're on the first of the 1000 threads, and if we are, we note the current thread's name by adding it to a set. A set dedupes its elements. So if the same name appears more than once, we'll still only have one element in the set.
+Run the program (CMD+Shift+F9!) and you'll see that the physics of the program are unchanged. There is only one name in the `Set<String>`. Why wouldn't there be? We only tested the same thread, over and over.
 
-Run the program (cmd shift f9!) and you'll see that the physics of the program are unchanged.
+Now, change that constructor to use _virtual threads_: `Thread.ofVirtual`. Super easy change. And now run the program.  CMD+Shift+F9.
 
-Now, change that constructor to use _virtual threads_. Super easy change. And now run the program. Cmd
+You'll see that there is more than one element in the set. You didn't change the core logic of your code at all. And indeed you only even had to change _one_ thing, but now, seamlessly, behind the scenes, the compiler and the runtime rewrote your code so that when something blocking   happens on a virtual thread, the runtime seamlessly takes you off and puts you back on threads after the blocking thing has concluded. This means that the thread on which you existed before is now available to other parts of the system. Your scalability is going to go through the roof!
 
-shift f9! And you'll see that there are more than one element in the set! You didn't change the core logic of your code at all. And indeed you only even had to change ONE thing, but now, seamlessly, behind the scenes, the compiler and the runtime rewrote your code so that when this blocking thing happens, the runtime seamlessly takes you off and puts you back on threads. This means that the thread on which you existed before is now available to other parts of the system. Your scalability is going to go through the roof!
+And you might protest, well I don't want to have to change all my code. First, that's a ridiculous argument, the change is trivial. You might protest: I don't want to be in the business of creating threads, either. Good point. Tony Hoare, in the 1970's, wrote that `NULL` is the 1 billion dollar mistake. He was wrong. It was, in fact, PHP. But, he also spoke at length about how untenable it was to build systems using threading. You're going to want to work with higher order abstractions, like sagas, actors, or at the very least an `ExecutorService`.
 
-And you might protest, well I don't want to have to change all my code. First, that's a ridiculous argument, the change is trivial. But, you might continue, you're using an `ExecutorService`. Fair point. And there's a new virtual thread executor as well: `Executors.newVirtualThreadPerTaskExecutor()`. Nice! If you're using Spring Boot, then you know you can change all sorts of aspects about the program by exporting beans of a given type - in this case, ExecutorService. Spring Boot will pull that in and defer to it instead.
+And there's a new virtual thread executor as well: `Executors.newVirtualThreadPerTaskExecutor`. Nice! If you're using Spring Boot, it's trivial to override the default bean of that type for use in parts of the system. Spring Boot will pull that in and defer to it instead. Easy enough. But if you're using Spring Boot 3.2 You are, surely, using Spring Boot 3.2, right? You realize that each release is only support for like a year, right? Make sure to check out an given https://spring.io/projects/spring-boot#support[Spring projects' support policy]. If you are using 3.2,  then you need only add one property to `application.properties` and we'll plugin the virtual thread support for you.
 
-Easy enough. But if you're using Spring Boot 3.2 (you are, surely, using Spring Boot 3.2, right?), then you need only set this property! `spring.threads.virtual.enabled=true`. Nice! No code changes required. And now you should see much improved scalability, and might be able to scale down some of the instances in your load balancer, if your services are IO bound. My suggestion? Tell your boss you're gonna save the company a ton of cash but insist you want that money in your paycheck. Then deploy this change. Voilà!
+[source,properties]
+----
+spring.threads.virtual.enabled=true
+----
 
-Alright, we're moving quickly. We've got git clone run-ability. We've got Docker compose support. We've got DevTools. We have a very nice language and syntax. We've got the freaking singularity. We're moving quickly. We've got scalability. Add the Spring Boot Actuator to the build and now you've got observability. I think it's time we turned to production.
+Nice! No code changes required. And now you should see much improved scalability, and might be able to scale down some of the instances in your load balancer, if your services are IO bound. My suggestion? Tell your boss you're gonna save the company a ton of cash but insist you want that money in your paycheck. Then deploy this change. Voilà!
 
-I wanna package this application up and make it as efficient as possible. Here, my friends, there are a couple of things we need to consider. First of all, how do we containerize the application? Simple. Use buildpacks. Easy. Remember, friends don't let friends write Dockerfiles. Use buildpacks. They're supported out of the box with Spring Boot, too: `./gradlew buildBootImage` or `./mvnw spring-boot:build-image`. This isn't new though, so next question.
+Alright, we're moving quickly. We've got `git clone` &amp; run-ability. We've got Docker compose support. We've got DevTools. We have a very nice language and syntax. We've got the freaking singularity. We're moving quickly. We've got scalability. Add the Spring Boot Actuator to the build and now you've got observability. I think it's time we turned to production.
+
+I wanna package this application up and make it as efficient as possible. Here, my friends, there are a couple of things we need to consider. First of all, how do we containerize the application? Simple. Use https://buildpacks.io[Buildpacks]. Easy. Remember, friends don't let friends write Dockerfiles. Use Buildpacks. They're supported out of the box with Spring Boot, too: `./gradlew buildBootImage` or `./mvnw spring-boot:build-image`. This isn't new though, so next question.
 
 How do we get this thing to be as efficient and optimized as possible? And before we dive into this, my friends, it's important to remember that Java is already very very very efficient. I love https://thenewstack.io/which-programming-languages-use-the-least-electricity/[this blog] from 2018, before the COVID pandemic, or _BC_.
 
-It looks at which languages use the least energy, or are the most energy-efficient.
-
-C is the most energy-efficient. It uses the least electricity. 1.0. It's the baseline. It's efficient… for MACHINES. Not people. Definitely not for people.
+It looks at which languages use the least energy, or are the most energy-efficient. C is the most energy-efficient. It uses the least electricity. 1.0. It's the baseline. It's efficient... for *MACHINES*. Not people! Definitely, _not_  people.
 
 Then we have Rust and its zero-cost abstractions. Well done.
 
-Then we have C++ ::spit on the floor in outrage:: Disgusting! Moving on.
+Then we have C++...
 
-Then we have Ada, but who cares.
+image::gross.gif[]
 
-Then we have Java, which is nearly 2.0. Let's just round up. 2.0. It's twice as inefficient as C. Or 1/2 as efficient as C.
+C++ is disgusting! Moving on...
+
+Then we have the Ada language, but.. who cares?
+
+And then we have Java, which is nearly 2.0. Let's just round up and say 2.0. Java is two times - twice! - as inefficient as C. Or one half  as efficient as C.
 
 So far so good? Great. It's in the top 5 most efficient languages, though!
 
-If you scroll the list, you'll see some amazing numbers. Go and C# coming in in the 3.0 range. Scroll down here and we have JavaScript and TypeScript, one of which - to my endless bafflement - is 4x less efficient than the other!
+If you scroll the list, you'll see some amazing numbers. Go and C# coming in around the 3.0+ range. Scroll down here, and we have JavaScript and TypeScript, one of which - to my endless bafflement - is four times _less_ efficient than the other!
 
-Then we have PHP and Hack, the less said about which the better. Moving on.
+Then we have PHP and Hack, the less said about which the better. Moving on!
 
-Then we have JRuby and Ruby. Friends, remember JRuby is Ruby written in Java. And Ruby is Ruby written in C. And yet JRuby is almost a 1/3 more efficient than Ruby! Just by dint of having been written on the JVM. It's an amazing piece of kit. Absolutely phenomenal.
+Then we have JRuby and Ruby. Friends, remember https://www.jruby.org[JRuby] is https://www.ruby-lang.org/en/[Ruby], written in Java. And Ruby is Ruby, written in C. And yet JRuby is almost a one third more efficient than Ruby! Just by dint of having been written in Java, and running on the JVM. The JVM is an amazing piece of kit. Absolutely phenomenal.
 
-Then… we have Python. And this… this makes me sad! I love Python! I've been using Python since the 90s! Bill Clinton was president when I first learned Python! But these numbers are _not_ great. Think about it. 75.88. Let's round up to 76. I'm not great at math. But you know what is? Freaking Python! Let's ask it. 76/2 is… 38. 
+Then.. we have Python. And this, well this makes me very sad indeed! I _love_ Python! I've been using Python since the 1990's! Bill Clinton was president when I first learned Python! But these numbers are _not_ great. Think about it. 75.88. Let's round up to 76. I'm not great at math. But you know what is? Freakin' Python! Let's ask it.
 
-38! That means that if you ran a program in Java, and the generation of the energy required to run it created a bit of carbon that got trapped in the atmosphere and that carbon in turn killed ONE tree, then the equivalent program in Python would kill THIRTY-EIGHT trees! That's a forest! That's worse than Bitcoin!
+image::python-doing-math.png[]
 
-We need to do something about this, and soon.
+38! That means that if you ran a program in Java, and the generation of the energy required to run it creates a bit of carbon that ends up  trapped in the atmosphere, raising the temperature, and that heightened temperature in turn kills ONE tree, then the equivalent program in Python would kill THIRTY-EIGHT trees! That's a forest! That's worse than Bitcoin! We need to do something about this, and soon. I don't know what, but something.
 
-Anyway, I guess that's neither here nor there. Suffice it to say that Java is already _amazing_.
+Anyway, what I'm trying to say is that Java is already _amazing_. I think this is because of two things that people take for granted: garbage collection and the Just In Time (JIT) compiler.
 
-I think this is because of two things that people take for granted: garbage collection and JIT.
+Garbage collection, well we all know what it is. Heck, https://www.whitehouse.gov/wp-content/uploads/2024/02/Final-ONCD-Technical-Report.pdf[even the White House appreciates garbage-collected, memory-safe languages] like Java in its recent report on securing software to secure the building blocks of cyberspace.
 
-Garbage collection, well we all know what it is. Heck, https://www.whitehouse.gov/wp-content/uploads/2024/02/Final-ONCD-Technical-Report.pdf["even the White House appreciates garbage-collected, memory-safe"] languages like Java in its recent report on securing software to secure the building blocks of cyberspace.
+The Java programming language garbage collector lets us write mediocre software and sort of _get away_ with it. It's dope! That said, I do take issue with the notion that it is the _original_ Java   garbage collector! That honor belongs elsewhere, like perhaps https://twitter.com/jtannady/status/981547257479778307?lang=en[with Jesslyn].
 
-Garbage collection lets us write mediocre software and sort of… get away with it. It's dope.
-
-And JIT - the just in time compiler - is another amazing piece of kit. It analyses frequently accessed code paths in your application and turns them into operating system and architecture-specific native code. It can only do this for some of your code though. It needs to know that the types that are in play when you compile the code are the only types that will be in play when you run the code. And some things in Java - a very dynamic language with a runtime that's more akin to that of JavaScript, Ruby, and Python - allow Java programs to do things that would violate this constraint. Things like serialization, JNI, reflection, resource loading, and JDK proxies. Remember, it's possible, with Java, to have a `String` that has as its contents a Java source code file, compile that string into a .class file on the filesystem, load the .class file into the classloader, reflectively create an instance of that class, and then - if that class is an interface - to create a JDK proxy of that class. And if that class implements Serializable - to write that class over a network socket and load it on another JVM. All without ever having an explicit typed reference to anything besides `java.lang.Object`! It's an amazing language, and this dynamic nature makes it a very productive language. But it also frustrates the JIT's attempt at optimizations.
+And the JIT is another amazing piece of kit. It analyses frequently accessed code paths in your application and turns them into operating system and architecture-specific native code. It can only do this for some of your code though. It needs to know that the types that are in play when you compile the code are the only types that will be in play when you run the code. And some things in Java - a very dynamic language with a runtime that's more akin to that of JavaScript, Ruby, and Python - allow Java programs to do things that would violate this constraint. Things like serialization, JNI, reflection, resource loading, and JDK proxies. Remember, it's possible, with Java, to have a `String` that has as its contents a Java source code file, compile that string into a .class file on the filesystem, load the .class file into the classloader, reflectively create an instance of that class, and then - if that class is an interface - to create a JDK proxy of that class. And if that class implements Serializable - to write that class over a network socket and load it on another JVM. All without ever having an explicit typed reference to anything besides `java.lang.Object`! It's an amazing language, and this dynamic nature makes it a very productive language. But it also frustrates the JIT's attempt at optimizations.
 
 But still, it does an amazing job where it can. And the results speak for themselves. So, one wonders, why couldn't we proactively JIT the whole program? Ahead of time. And we can. There's an OpenJDK distribution called GraalVM that has a number of niceties that extend the OpenJDK release with extra tools like the native image compiler. The native image compiler is dope. But this native image compiler has the same constraints. It can't do its magic for very dynamic things. Which is a problem. As most code - your unit testing libraries, your web frameworks, your ORMs, your logging libraries… everything! - use one or all of those dynamic behaviors.
 
