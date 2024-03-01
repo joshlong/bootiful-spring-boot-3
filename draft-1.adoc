@@ -1,12 +1,12 @@
-# Bootiful Spring Boot 3.2
+= Bootiful Spring Boot 3.2
 
-NB: the code is [here](https://github.com/joshlong/bootiful-spring-boot-3/tree/main/02-2024/service).
+NB: the code is https://github.com/joshlong/bootiful-spring-boot-3/tree/main/02-2024/service[here].
 
 Hi, Spring fans! I'm Josh Long, and I work on the Spring team. I'm a Kotlin GDE and a Java Champion, and I'm of the opinion that there's never been a better time to be a Java and Spring Boot developer. I say that fully aware of where we stand in the span of things today. It's been 21+ years since the early releases of the Spring Framework and 11 years since the early releases of Spring Boot. This year marks 20 years since the Spring Framework and 10 years since Spring Boot. So, when I say there's never been a better time, bear in mind I've been in this for the better part of those decades. I love the JVM and Spring, and it's been amazing.
 
 But this is the best time. It's never been close. So, let's develop a new application, as always, by visiting start.spring.io, and we'll see what I mean. Click `add` and choose `spring web`, `spring data jdbc`, `openai`, `graalvm native support`, `docker compose`, `postgres`, and `devtools`.
 
-Give it an artifact name. I called my service... "service". I'm great with names. I get that from my dad. My dad was also amazing with names. When I was a small boy, we had a tiny little white dog, and my father named him _white dog_. He was our family pet for years. But after around ten years, he disappeared. I'm not sure what happened to him after all. Maybe he got a job; I don't know. But then miraculously, another small white dog appeared tapping on our screen door. So we took him in, and my father named him 'too'. Or 'two'. I don't know. Anyway, _great_ with names. Though, that said, my mom tells me all the time that I'm very lucky she named me... That's probably true.
+Give it an artifact name. I called my service… "service". I'm great with names. I get that from my dad. My dad was also amazing with names. When I was a small boy, we had a tiny little white dog, and my father named him _white dog_. He was our family pet for years. But after around ten years, he disappeared. I'm not sure what happened to him after all. Maybe he got a job; I don't know. But then miraculously, another small white dog appeared tapping on our screen door. So we took him in, and my father named him 'too'. Or 'two'. I don't know. Anyway, _great_ with names. Though, that said, my mom tells me all the time that I'm very lucky she named me… That's probably true.
 
 Anyway, choose Java 21. This part is key. You can't use Java 21 if you don't use Java 21. So, you need Java 21. But we are also going to use GraalVM for its native image capabilities.
 
@@ -26,7 +26,7 @@ We want to move as quickly as possible. To that end, we've added DevTools to the
 
 This works because, again, Spring is super quick to startup. _Except_, that is, when you are launching
 
- a PostgreSQL database on each restart. I love PostgreSQL, but, uh, yeah, it's not meant to be constantly restarted each time you're tweaking method names and HTTP endpoint paths and CSS and such. So, let's configure it to stay running.
+a PostgreSQL database on each restart. I love PostgreSQL, but, uh, yeah, it's not meant to be constantly restarted each time you're tweaking method names and HTTP endpoint paths and CSS and such. So, let's configure it to stay running.
 
 :: show docker-compose lifecycle property ::
 
@@ -110,7 +110,7 @@ That said, things change. There are always new frontiers. Right now, the new fro
 
 AI is a huge industry, but what most people mean when they think of AI is _leveraging_ AI. You don't need to use Python to use large language models (LLMs), in the same way that most folks don't need to use C and write their own SQL dbs. You just need to integrate with the LLMs, and here Java is second to none for choice and power.
 
-At our last [springone 2023](https://springone.io/history-of-spring) event, we announced Spring AI, a new project that aims to make integrating and working with AI as easy as possible.
+At our last https://springone.io/history-of-spring[springone 2023] event, we announced Spring AI, a new project that aims to make integrating and working with AI as easy as possible.
 
 Sure, there are bindings for _all_ the LLMs you could possibly want - Pinecone, Bedrock, Azure OpenAI, Google Gemini, Ollama, HuggingFace, and of course OpenAI itself, but that's just the beginning. You see, LLMs are baked into a model, and that model then informs the LLM's understanding of the world. But that model has a cutoff date, after which its knowledge is stale. So if you want to build, say, an IVR that fields requests for a user's bank account, then that LLM is going to need to be apprised of the up-to-date state of the world when it does so. You can add information in the request that you make and use it as context to inform the response. If it were only this simple, then that wouldn't be so bad. There's another wrinkle. Different LLMs support different context window sizes. How much data can you send (and receive) for a given request? The smaller the window, the less information you can send, the less informed the LLM will be in its response.
 
@@ -124,7 +124,7 @@ But we can do something quick and easy demo here.
 
 Cmd shift f9, and you can visit the endpoint. It might take a few seconds, so get that cup of coffee or water or whatever ready for a quick
 
- sip.
+sip.
 
 There it is! We live in an age of miracles! The age of the freaking singularity! You can do anything now.
 
@@ -166,7 +166,7 @@ Run the program (cmd shift f9!) and you'll see that the physics of the program a
 
 Now, change that constructor to use _virtual threads_. Super easy change. And now run the program. Cmd
 
- shift f9! And you'll see that there are more than one element in the set! You didn't change the core logic of your code at all. And indeed you only even had to change ONE thing, but now, seamlessly, behind the scenes, the compiler and the runtime rewrote your code so that when this blocking thing happens, the runtime seamlessly takes you off and puts you back on threads. This means that the thread on which you existed before is now available to other parts of the system. Your scalability is going to go through the roof!
+shift f9! And you'll see that there are more than one element in the set! You didn't change the core logic of your code at all. And indeed you only even had to change ONE thing, but now, seamlessly, behind the scenes, the compiler and the runtime rewrote your code so that when this blocking thing happens, the runtime seamlessly takes you off and puts you back on threads. This means that the thread on which you existed before is now available to other parts of the system. Your scalability is going to go through the roof!
 
 And you might protest, well I don't want to have to change all my code. First, that's a ridiculous argument, the change is trivial. But, you might continue, you're using an `ExecutorService`. Fair point. And there's a new virtual thread executor as well: `Executors.newVirtualThreadPerTaskExecutor()`. Nice! If you're using Spring Boot, then you know you can change all sorts of aspects about the program by exporting beans of a given type - in this case, ExecutorService. Spring Boot will pull that in and defer to it instead.
 
@@ -176,11 +176,11 @@ Alright, we're moving quickly. We've got git clone run-ability. We've got Docker
 
 I wanna package this application up and make it as efficient as possible. Here, my friends, there are a couple of things we need to consider. First of all, how do we containerize the application? Simple. Use buildpacks. Easy. Remember, friends don't let friends write Dockerfiles. Use buildpacks. They're supported out of the box with Spring Boot, too: `./gradlew buildBootImage` or `./mvnw spring-boot:build-image`. This isn't new though, so next question.
 
-How do we get this thing to be as efficient and optimized as possible? And before we dive into this, my friends, it's important to remember that Java is already very very very efficient. I love [this blog](https://thenewstack.io/which-programming-languages-use-the-least-electricity/) from 2018, before the COVID pandemic, or _BC_.
+How do we get this thing to be as efficient and optimized as possible? And before we dive into this, my friends, it's important to remember that Java is already very very very efficient. I love https://thenewstack.io/which-programming-languages-use-the-least-electricity/[this blog] from 2018, before the COVID pandemic, or _BC_.
 
 It looks at which languages use the least energy, or are the most energy-efficient.
 
-C is the most energy-efficient. It uses the least electricity. 1.0. It's the baseline. It's efficient... for MACHINES. Not people. Definitely not for people.
+C is the most energy-efficient. It uses the least electricity. 1.0. It's the baseline. It's efficient… for MACHINES. Not people. Definitely not for people.
 
 Then we have Rust and its zero-cost abstractions. Well done.
 
@@ -198,7 +198,7 @@ Then we have PHP and Hack, the less said about which the better. Moving on.
 
 Then we have JRuby and Ruby. Friends, remember JRuby is Ruby written in Java. And Ruby is Ruby written in C. And yet JRuby is almost a 1/3 more efficient than Ruby! Just by dint of having been written on the JVM. It's an amazing piece of kit. Absolutely phenomenal.
 
-Then... we have Python. And this... this makes me sad! I love Python! I've been using Python since the 90s! Bill Clinton was president when I first learned Python! But these numbers are _not_ great. Think about it. 75.88. Let's round up to 76. I'm not great at math. But you know what is? Freaking Python! Let's ask it. 76/2 is... 38. 
+Then… we have Python. And this… this makes me sad! I love Python! I've been using Python since the 90s! Bill Clinton was president when I first learned Python! But these numbers are _not_ great. Think about it. 75.88. Let's round up to 76. I'm not great at math. But you know what is? Freaking Python! Let's ask it. 76/2 is… 38. 
 
 38! That means that if you ran a program in Java, and the generation of the energy required to run it created a bit of carbon that got trapped in the atmosphere and that carbon in turn killed ONE tree, then the equivalent program in Python would kill THIRTY-EIGHT trees! That's a forest! That's worse than Bitcoin!
 
@@ -208,13 +208,13 @@ Anyway, I guess that's neither here nor there. Suffice it to say that Java is al
 
 I think this is because of two things that people take for granted: garbage collection and JIT.
 
-Garbage collection, well we all know what it is. Heck, [even the White House appreciates garbage-collected, memory-safe](https://www.whitehouse.gov/wp-content/uploads/2024/02/Final-ONCD-Technical-Report.pdf) languages like Java in its recent report on securing software to secure the building blocks of cyberspace.
+Garbage collection, well we all know what it is. Heck, https://www.whitehouse.gov/wp-content/uploads/2024/02/Final-ONCD-Technical-Report.pdf["even the White House appreciates garbage-collected, memory-safe"] languages like Java in its recent report on securing software to secure the building blocks of cyberspace.
 
-Garbage collection lets us write mediocre software and sort of... get away with it. It's dope.
+Garbage collection lets us write mediocre software and sort of… get away with it. It's dope.
 
 And JIT - the just in time compiler - is another amazing piece of kit. It analyses frequently accessed code paths in your application and turns them into operating system and architecture-specific native code. It can only do this for some of your code though. It needs to know that the types that are in play when you compile the code are the only types that will be in play when you run the code. And some things in Java - a very dynamic language with a runtime that's more akin to that of JavaScript, Ruby, and Python - allow Java programs to do things that would violate this constraint. Things like serialization, JNI, reflection, resource loading, and JDK proxies. Remember, it's possible, with Java, to have a `String` that has as its contents a Java source code file, compile that string into a .class file on the filesystem, load the .class file into the classloader, reflectively create an instance of that class, and then - if that class is an interface - to create a JDK proxy of that class. And if that class implements Serializable - to write that class over a network socket and load it on another JVM. All without ever having an explicit typed reference to anything besides `java.lang.Object`! It's an amazing language, and this dynamic nature makes it a very productive language. But it also frustrates the JIT's attempt at optimizations.
 
-But still, it does an amazing job where it can. And the results speak for themselves. So, one wonders, why couldn't we proactively JIT the whole program? Ahead of time. And we can. There's an OpenJDK distribution called GraalVM that has a number of niceties that extend the OpenJDK release with extra tools like the native image compiler. The native image compiler is dope. But this native image compiler has the same constraints. It can't do its magic for very dynamic things. Which is a problem. As most code - your unit testing libraries, your web frameworks, your ORMs, your logging libraries... everything! - use one or all of those dynamic behaviors.
+But still, it does an amazing job where it can. And the results speak for themselves. So, one wonders, why couldn't we proactively JIT the whole program? Ahead of time. And we can. There's an OpenJDK distribution called GraalVM that has a number of niceties that extend the OpenJDK release with extra tools like the native image compiler. The native image compiler is dope. But this native image compiler has the same constraints. It can't do its magic for very dynamic things. Which is a problem. As most code - your unit testing libraries, your web frameworks, your ORMs, your logging libraries… everything! - use one or all of those dynamic behaviors.
 
 There is an escape hatch. You can furnish configuration in the form of `.json` files to the GraalVM compiler. These .json files have two problems.
 
@@ -222,15 +222,15 @@ First, it sounds stupid. I don't like saying the word "JAY-SAWN". As an adult, I
 
 That's the first problem. The second problem is that, well, there's just so much darned .json required! Again, just think about all the places it's required! It's endless. I don't have time to write artisanally handcrafted configuration files for every program. I don't even have enough time to finish this blog!
 
-So, we'll use the Spring Boot 3 AOT engine instead. The AOT engine analyses the beans in your Spring Application and emits the requisite .json files for you. Nice! There's even a whole component model that you can use that extends Spring to compile time. I won't get into all of that here, but you can read my [free e-book]() or watch my free YouTube video introducing all things [Spring and AOT]().
+So, we'll use the Spring Boot 3 AOT engine instead. The AOT engine analyses the beans in your Spring Application and emits the requisite .json files for you. Nice! There's even a whole component model that you can use that extends Spring to compile time. I won't get into all of that here, but you can read my link:[free e-book] or watch my free YouTube video introducing all things link:[Spring and AOT].
 
 So let's kick off that build: `./gradlew nativeCompile`
 
 This will take a little while. Remember, it's doing an analysis of everything in your codebase - be it the libraries on the classpath, the JRE, and your code itself - to determine which types it should preserve and which it should throw out. The result is
 
- a lean mean lightning-fast binary - but at the cost of a very slow compilation.
+a lean mean lightning-fast binary - but at the cost of a very slow compilation.
 
-It takes so long, in fact, that it kinda just gums up the works. Stops me dead in my tracks, waiting. I'm, like the platform threads of earlier on in this very blog, _blocked_. And I get bored. Waiting. Waiting. Sometimes I start to hum music. Or theme songs. Or elevator music. You know what elevator music sounds like, right? Ceaseless, endless. So, I thought, wouldn't it be great if everyone heard elevator music? [So I asked.]() and I got some great responses.
+It takes so long, in fact, that it kinda just gums up the works. Stops me dead in my tracks, waiting. I'm, like the platform threads of earlier on in this very blog, _blocked_. And I get bored. Waiting. Waiting. Sometimes I start to hum music. Or theme songs. Or elevator music. You know what elevator music sounds like, right? Ceaseless, endless. So, I thought, wouldn't it be great if everyone heard elevator music? link:[So I asked.] and I got some great responses.
 
 One response suggested that having a beeping sound would be useful. Couldn't agree more. My stupid microwave will make a _ding!_ sound when it's done. Why couldn't my multi-million line compiler?
 
@@ -240,15 +240,15 @@ And then we got this response, from another one of my favorite doctors, Dr. Niep
 
 ::show the tweet with the native image compiler being updated::
 
-I'm sure it'll get merged any day now...
+I'm sure it'll get merged any day now…
 
-Anyway... if you check the compilation, it should be done now. It's in the `./build/native/nativeCompile/` folder, and it's called `service`.
+Anyway… if you check the compilation, it should be done now. It's in the `./build/native/nativeCompile/` folder, and it's called `service`.
 
 Run it. It'll fail because, again - we're living that git-clone-run lifestyle! We didn't specify any connectivity credentials! So, run it with the following environment variables specified:
 
 :: show the `run.sh` contents ::
 
-On my machine, it starts up in ~100ms! Nice! But I don't really care all that much about that because this is a standalone service. What I care about is the resident set size. Note the process identifier - it'll be in the logs - and then use `ps -oi rss <PID>`. It'll dump out a number in kilobytes, so divide by a thousand and you'll get the number in megabytes. On my machine, it takes just over 100MB to run. That's amazing!
+On my machine, it starts up in ~100ms! Nice! But I don't really care all that much about that because this is a standalone service. What I care about is the resident set size. Note the process identifier - it'll be in the logs - and then use `ps -oi rss &lt;PID&gt;`. It'll dump out a number in kilobytes, so divide by a thousand and you'll get the number in megabytes. On my machine, it takes just over 100MB to run. That's amazing!
 
 We have a program that is concise as can be, easy to develop and iterate on. And it uses virtual threads to give us unparalleled scalability. It runs as a standalone, self-contained operating system-specific native image. It supports the freaking singularity! Amazing! We live in an amazing time. And there's never been a better time to be a Java and Spring developer. I hope I've so persuaded you, too.
 
