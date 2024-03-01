@@ -203,27 +203,35 @@ It's up and running. Visit `http://localhost:8080/customers` to see the results.
 
 This is all pretty stock standard stuff. You could've done something similar ten years ago. Mind you, the code would've been far more verbose. Java's improved by leaps and bounds since then. And of course, the speeds wouldn't have been comparable. And of course, the abstractions are better now. But you could've done something similar - a web application babysitting a database.
 
-Things change. There are always new frontiers. Right now, the new frontier is *Artificial Intelligence*, or A.I. A.I.: because the search for good ol' *Intelligence* clearly wasn't hard enough.
+Things change. There are always new frontiers. Right now, the new frontier is *Artificial Intelligence*, or AI. AI: because the search for good ol' *Intelligence* clearly wasn't hard enough.
 
-AI is a huge industry, but what most people mean when they think of AI is _leveraging_ AI. You don't need to use Python to use large language models (LLMs), in the same way that most folks don't need to use C and write their own SQL dbs. You just need to integrate with the LLMs, and here Java is second to none for choice and power.
+AI is a huge industry, but what most people mean when they think of AI is _leveraging_ AI. You don't need to use Python to use Large Language Models (LLMs), in the same way that most folks don't need to use C to use SQL databases. You just need to integrate with the LLMs, and here Java is second to none for choice and power.
 
-At our last https://springone.io/history-of-spring[springone 2023] event, we announced Spring AI, a new project that aims to make integrating and working with AI as easy as possible.
+At our last tentpole  https://springone.io/history-of-spring[SpringOne] developer event, in 2023, we announced https://spring.io/projects/spring-ai[**Spring AI**], a new project that aims to make integrating and working with AI as easy as possible.
 
-Sure, there are bindings for _all_ the LLMs you could possibly want - Pinecone, Bedrock, Azure OpenAI, Google Gemini, Ollama, HuggingFace, and of course OpenAI itself, but that's just the beginning. You see, LLMs are baked into a model, and that model then informs the LLM's understanding of the world. But that model has a cutoff date, after which its knowledge is stale. So if you want to build, say, an IVR that fields requests for a user's bank account, then that LLM is going to need to be apprised of the up-to-date state of the world when it does so. You can add information in the request that you make and use it as context to inform the response. If it were only this simple, then that wouldn't be so bad. There's another wrinkle. Different LLMs support different context window sizes. How much data can you send (and receive) for a given request? The smaller the window, the less information you can send, the less informed the LLM will be in its response.
+You'll want to ingest data, say from an account, files, services, or even a set of PDFs. You'll want to store them for easy retrieval in a vector database to support similarity searches. And you'll want to then integrate with an LLM, giving it data from that vector database.
 
-One thing you might do here is to put the data in a vector store, like pgvector, Neo4j, Weaviate, or otherwise. Vector stores give you the ability to, given a word or sets of words, find other things that are similar to them. It stores data as mathematical representations and lets you query for similar things. So, you'll want to ingest data, say from an account, or a set of PDFs. You'll want to store them for easy retrieval in a vector database. And you'll want to then integrate with an LLM, giving it data from that vector db. This whole process of ingesting, enriching, and analyzing data so as to inform the response from an LLM is called Retrieval Augmented Generation (RAG).
+Sure, there are client bindings for any of the LLMs that you could possibly want - https://docs.aws.amazon.com/bedrock/[Amazon Bedrock], https://azure.microsoft.com/en-us/products/ai-services/openai-service[Azure OpenAI], https://cloud.google.com/vertex-ai/docs/reference/rest[Google Vertex] _and_ https://ai.google.dev/docs/gemini_api_overview[Google Gemini], https://ollama.com[Ollama], https://huggingface.co[HuggingFace], and of course https://openai.com[OpenAI] itself, but that's _just the beginning_.
 
-RAG is the purview of Spring AI. We're not going to leverage all those capabilities. For more, see this Spring RTips video I did on Spring AI.
+All the knowledge that powers an LLM is baked into a model, and that model then informs the LLM's understanding of the world. But that model has an expiry date, of sorts, after which its knowledge is stale. If the model was built two weeks ago it won't know about something that happened yesterday. So if you want to build, say, an automated assistant that fields requests from users about their bank accounts, then that LLM is going to need to be apprised of the up-to-date state of the world when it does so.
 
-But we can do something quick and easy demo here.
+You can add information in the request that you make and use it as context to inform the response. If it were only this simple, then that wouldn't be so bad. There's another wrinkle. Different LLMs support different _token window sizes_. The token window determines how much data can you send and receive for a given request. The smaller the window, the less information you can send, and the less informed the LLM will be in its response.
 
-::show the code for a story controller::
+One thing you might do here is to put the data in a vector store, like https://github.com/pgvector/pgvector[pgvector], https://neo4j.org[Neo4j],  http://weaviate.io[Weaviate], or otherwise, and then connect your LLM to that vector database. Vector stores give you the ability to, given a word or sets of words, find other things that are similar to them. It stores data as mathematical representations and lets you query for similar things.
 
-Cmd shift f9, and you can visit the endpoint. It might take a few seconds, so get that cup of coffee or water or whatever ready for a quick
+This whole process of ingesting, enriching, analyzing and digesting data to inform the response from an LLM is called *Retrieval Augmented Generation* (RAG), Spring AI supports all of it. For more, see this https://www.youtube.com/watch?v=aNKDoiOUo9M[Spring Tips video I did on Spring AI].  We're not going to leverage all these capabilities here, however. Just one.
 
-sip.
+We added `OpenAI` support on the Spring Initializr so Spring AI is already on the classpath. Add a new controller, like this:
 
-There it is! We live in an age of miracles! The age of the freaking singularity! You can do anything now.
+.an AI-powered Spring MVC controller
+[source,java]
+----
+include::src/main/java/com/example/service/StoryController.java[]
+----
+
+Pretty straightforward! Inject Spring AI's `ChatClient`, use it to send a request to the LLM, get the response, and return it as JSON to the HTTP client.
+
+CMD+Shift+F9 and then visit the endpoint. The LLM might take a few seconds to produce a response, so get that cup of coffee,  water, or whatever ready for a quick sip. There it is! We live in an age of miracles! The age of the freaking singularity! You can do anything now.
 
 Here's what I got when I ran it:
 
