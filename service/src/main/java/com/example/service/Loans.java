@@ -20,4 +20,17 @@ class Loans {
 		};
 	}
 
+	@Deprecated
+	String badDisplayMessageFor(Loan loan) {
+		var message = "";
+		if (loan instanceof SecuredLoan) {
+			message = "good job! ";
+		}
+		if (loan instanceof UnsecuredLoan) {
+			var usl = (UnsecuredLoan) loan;
+			message = "ouch! that " + usl.interest() + "% interest rate is going to hurt!";
+		}
+		return message;
+	}
+
 }

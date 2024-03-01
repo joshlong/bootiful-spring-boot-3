@@ -31,9 +31,10 @@ This  new application is going to be talking to a database; it's a data-centric 
 
 To that end, the Spring Initializr generated a https://github.com/docker/compose[Docker Compose] `compose.yml` file that contains a definition for Postgres, the amazing SQL database.
 
+.the Docker Compose file, `compose.yaml`
 [source,yaml]
 ----
-include::02-2024/service/compose.yml[]
+include::compose.yaml[]
 ----
 
 Even better, Spring Boot is configured to automatically run the Docker Compose (`docker compose up`) configuration  when the Spring Boot application starts up. No need to configure connectivity details like `spring.datasource.url` and `spring.datasource.password`, etc. It's all done with Spring Boot's amazing  autoconfiguration. Ya love to see it! And, never wanting to leave a mess, Spring Boot will shut down the Docker containers on application shutdown, too.
@@ -52,54 +53,99 @@ We'll start with a simple record.
 
 [source,java]
 ----
-include::src/main/java/com/example/demo/Customer.java[]
+include::src/main/java/com/example/service/Customer.java[]
 ----
 
-:: show code for a record for `Customer` :: // look mom, no Lombok!
+I love Java records! And you should too! Don't sleep on records. This innocuous little `record` isn't just a better way to do something like Lombok's `@Data` annotation does, it's actually part of a handful of features that, culminating in Java 21 and taken together, support something called _data-oriented programming_.
 
-I love records! And you should too! Don't sleep on records. This innocuous little record isn't just a better way to do something like Lombok's `@Data` annotation does, it's actually part of a handful of features that, culminating in Java 21 and taken together, support something called _data-oriented programming_.
+Java language architect Brian Goetz talks about this in his https://www.infoq.com/articles/data-oriented-programming-java/[InfoQ article on Data-Oriented Programming] in 2022.
 
-Java language architect Brian Goetz talks about this in his InfoQ article on Data-Oriented Programming in 2022.
+Java has dominated the world of the monolith, the reasoning goes, because of its strong access control, good and quick compiler, privacy protections, and so on. Java makes it easy to create relatively modular, composable, monolithic applications. Monolithic applications are typically large, sprawling codebases, and Java supports it. Indeed, if you want modularity and want to structure your large monolithic codebase well, check out the https://spring.io/projects/spring-modulith[Spring Modulith] project.
 
-Java has dominated the world of the monolith, the reasoning goes, because of its strong access control, good, quick compiler, privacy protections, and so on. Java makes it easy to create relatively modular, composable, monolithic applications. Monolithic applications are typically large, sprawling codebases, and Java supports it.
+But things have changed. These days, the vector by which we express change in a system these days is _not_ the specialized implementations of deep-seated hierarchies of abstract types (through dynamic dispatch and polymorphism), but instead in terms of the often ad-hoc messages that get sent across the wire, via HTTP/REST, gRPC, messaging substrates like Apache Kafka and RabbitMQ, etc. It's the data, dummy!
 
-But things have changed. As often as not, the vector by which we express change in a system these days is _not_ the specialized implementations of deep-seated hierarchies of abstract types - through dynamic dispatch and polymorphism - but instead in terms of the often ad-hoc messages that get sent across the wire, via HTTP/REST, gRPC, messaging substrates like Apache Kafka, etc. It's the data, dummy.
+Java has evolved to support these new patterns. Let's take a look at four key features - records, pattern matching, smart switch expressions, and sealed types - to see what I mean. Suppose we work in a heavily regulated industry, like finance.
 
-Java has evolved to support these new patterns.
+Imagine we have an interface called `Loan`. Obviously, loans are heavily regulated financial instruments. We don't want somebody coming along and adding an anonymous inner class implementation of the `Loan` interface, sidestepping the validation and protection we've worked so earnestly to build into the system. So, we'll use `sealed` types.
 
-Let's take a look at four key features - records, pattern matching, smart switch expressions, and sealed types - to see what I mean. Suppose we work in a heavily regulated industry, like finance.
+Sealed types are a new sort of access control or visibility modifier.  Now, let's say I wanted to display a message for each type of `Loan`. I'll code up a method. Here's the naïve first implementation.
 
-Imagine we have an interface called `Loan`. Well, obviously, loans are heavily regulated financial instruments. We don't want somebody coming along and adding an anonymous inner class implementation of the `Loan` interface, sidestepping the validation and protection we've worked so earnestly to build into the codebase.
+[source,java]
+----
 
-So, we'll use `sealed` types.
+	@Deprecated
+	String badDisplayMessageFor(Loan loan) {
+		var message = "";
+		if (loan instanceof SecuredLoan) {
+			message = "good job! ";
+		}
+		if (loan instanceof UnsecuredLoan) {
+			var usl = (UnsecuredLoan) loan;
+			message = "ouch! that " + usl.interest() + "% interest rate is going to hurt!";
+		}
+		return message;
+	}
 
-::show the Loan, Unsecured Loan, and Secured Loan, as sealed types; make the Unsecured Loan a record::
+----
 
-Sealed types are a new sort of access control or visibility modifier. Nice!
+This works, sort of. But it's not carrying its weight.
 
-Now, let's say I wanted to display a message for each type of loan. I'll code up a method. Here's the naive first implementation.
+We can clean it up. Let's take advantage of pattern matching, like this:
 
-:: show the version with the if instance checks and the standalone variable and so on.::
+[source,java]
+-----
 
-This works, sort of. But it's carrying its weight.
+	@Deprecated
+	String notGreatDisplayMessageFor(Loan loan) {
+		var message = "";
+		if (loan instanceof SecuredLoan) {
+			message = "good job! ";
+		}
+		if (loan instanceof UnsecuredLoan usl) {
+			message = "ouch! that " + usl.interest() + "% interest rate is going to hurt!";
+		}
+		return message;
+	}
 
-We can clean it up. Take advantage of pattern matching. Like this.
+-----
 
-:: show a version that has `if instance Foo foo`; this is much better! It's cleaner and more expressive.
+Better. Note that we're using pattern matching to match the shape of the object and then extract the definitively castable thing into a variable, `usl`. We don't even really need the `usl` variable, though, do we. Instead, we want to dereference the `interest` variable. So we can change the pattern matching to extract that variable, like this.
 
-Better. But what happens if I comment out one of the branches? Nothing! The compiler doesn't care. But now we're not handling one of the critical paths that this code could go.
 
-Likewise, I have this value stored in a variable, and I'm assigning it based on the results of some condition. Wouldn't it be nice if I could cut out the middle variable and just return some expression!
 
-Let's look at a cleaner implementation.
+[source,java]
+-----
 
-:: show the version with a smart switch expression and pattern matching::
+	@Deprecated
+	String notGreatDisplayMessageFor(Loan loan) {
+		var message = "";
+		if (loan instanceof SecuredLoan) {
+			message = "good job! ";
+		}
+		if (loan instanceof UnsecuredLoan(var interest) ) {
+			message = "ouch! that " + interest + "% interest rate is going to hurt!";
+		}
+		return message;
+	}
 
-This version uses smart switch expressions to return a value, pattern matching. If you comment out one of the branches, the compiler will bark, because - thanks to sealed types - it knows that you haven't exhausted all possible options.
+-----
 
-Nice! The compiler is doing a lot of work for us! The result is both cleaner and more expressive. Mostly.
 
-The problem is I have this wasted variable `usl`, which I use just to dereference the value. But I made that type a record.
+What happens if I comment out one of the branches? Nothing! The compiler doesn't care.  We're not handling one of the critical paths through which this code could pass.
+
+Likewise, I have this value stored in a variable, `message`, and I'm assigning it as a side effect of some condition. Wouldn't it be nice if I could cut out the intermediate value and just return some expression? Let's look at a cleaner implementation using smart switch expressions, another nifty novelty in Java.
+
+[source,java]
+----
+	String displayMessageFor(Loan loan) {
+		return switch (loan) {
+			case SecuredLoan sl -> "good job! ";
+			case UnsecuredLoan(var interest) -> "ouch! that " + interest + "% interest rate is going to hurt!";
+		};
+	}
+----
+
+This version uses smart switch expressions to return a value and pattern matching. If you comment out one of the branches, the compiler will bark, because - thanks to sealed types - it knows that you haven't exhausted all possible options. Nice! The compiler is doing a lot of work for us! The result is both cleaner and more expressive. Mostly.
 
 Records are Java's answer to tuples. They are tuples. It's just Java is a nominal language; things have names. This tuple has a name, too. And records give us a lot of power if we agree to the contract they imply. The core conceit of records is that the identity of the object is equal to the identity of the fields - they're called 'components' - in a record. So in this case, the identity of the record is equal to the identity of the `interest` variable. If we agree to that, then the compiler can give us a constructor, it can give us storage for each of the components, it can give us a `toString` method, a `hashCode` method, and an `equals` method. And it'll give us accessors for the components in the constructor. Nice!
 
@@ -181,7 +227,7 @@ If you do something blocking on a new _virtual thread_, the runtime will detect 
 
 :: show the threads example ::
 
-On line $$REPLACE_ME$$, the constructor we're using creates regular standard old platform threads, identical in nature to the threads we've created basically since Java's debut in the '90s. The program creates 1000 threads. In each thread, we sleep for 100 milliseconds, four times. In between, we test if we're on the first of the 1000 threads, and if we are, we note the current thread's name by adding it to a set. A set dedupes its elements. So if the same name appears more than once, we'll still only have one element in the set.
+On line __REPLACE_ME__, the constructor we're using creates regular standard old platform threads, identical in nature to the threads we've created basically since Java's debut in the '90s. The program creates 1000 threads. In each thread, we sleep for 100 milliseconds, four times. In between, we test if we're on the first of the 1000 threads, and if we are, we note the current thread's name by adding it to a set. A set dedupes its elements. So if the same name appears more than once, we'll still only have one element in the set.
 
 Run the program (cmd shift f9!) and you'll see that the physics of the program are unchanged.
 
