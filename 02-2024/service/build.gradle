@@ -1,3 +1,13 @@
+
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath("io.spring.javaformat:spring-javaformat-gradle-plugin:0.0.41")
+	}
+}
+
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.2.3'
@@ -21,6 +31,9 @@ ext {
 	set('springAiVersion', "0.8.0")
 }
 
+
+apply plugin: 'io.spring.javaformat'
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
@@ -40,4 +53,12 @@ dependencyManagement {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.named('compileJava') {
+    it.dependsOn ':formatMain'
+}
+
+tasks.named('compileTestJava') {
+    it.dependsOn ':formatTest'
 }

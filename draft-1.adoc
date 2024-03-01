@@ -36,15 +36,17 @@ To that end, the Spring Initializr generated a https://github.com/docker/compose
 include::02-2024/service/compose.yml[]
 ----
 
-And, even better, Spring Boot is configured to automatically run the Docker Compose (`docker compose up`) configuration  when the Spring Boot application starts up. No need to configure connectivity details like `spring.datasource.url` and `spring.datasource.password`, etc. It's all done with Spring Boot's amazing  autoconfiguration. Ya love to see it! And, never wanting to leave a mess, Spring Boot will shut down the Docker containers on application shutdown, too.
+Even better, Spring Boot is configured to automatically run the Docker Compose (`docker compose up`) configuration  when the Spring Boot application starts up. No need to configure connectivity details like `spring.datasource.url` and `spring.datasource.password`, etc. It's all done with Spring Boot's amazing  autoconfiguration. Ya love to see it! And, never wanting to leave a mess, Spring Boot will shut down the Docker containers on application shutdown, too.
 
 We want to move as quickly as possible. To that end, we selected DevTools on the _Spring Initializr_. It'll allow us to move quickly. The core conceit here is that restarting Java is pretty slow. Restarting Spring, however, is really quick. So, what if we had a process monitoring our project folder, and that could  take note of newly compiled `.class` files, load them into the classloader, and then create a new Spring `ApplicationContext`, discarding the old one, and giving us the appearance of a live reload? That's exactly what Spring's DevTools do. Run it during development and see your restart time diminish by huge fractions!
 
-This works because, again, Spring is super quick to startup... _Except_, that is, when you are launching a PostgreSQL database on each restart. I love PostgreSQL, but, uh, yeah, it's not meant to be constantly restarted each time you're tweaking method names and HTTP endpoint paths and CSS and such. So, let's configure it to stay running.
+This works because, again, Spring is super quick to startup... _Except_, that is, when you are launching a PostgreSQL database on each restart. I love PostgreSQL, but, uh, yeah, it's not meant to be constantly restarted each time you're tweaking method names, modifying HTTP endpoint paths, or finessing some CSS. So, let's configure Spring Boot to simply start the Docker Compose file, and to leave it running instead of restarting each time.
 
-:: show docker-compose lifecycle property ::
-
-Alright, now let's go ahead and build a data-centric application.
+.add the property to `application.properties`
+[source,properties]
+-----
+spring.docker.compose.lifecycle-management=start_only
+-----
 
 We'll start with a simple record.
 
