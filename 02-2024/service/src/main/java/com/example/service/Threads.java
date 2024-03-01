@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.example.service;
 
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;

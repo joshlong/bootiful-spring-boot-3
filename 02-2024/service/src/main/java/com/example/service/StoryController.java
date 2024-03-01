@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.example.service;
 
 import org.springframework.ai.chat.ChatClient;
 import org.springframework.stereotype.Controller;

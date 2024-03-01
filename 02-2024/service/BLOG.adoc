@@ -50,6 +50,11 @@ spring.docker.compose.lifecycle-management=start_only
 
 We'll start with a simple record.
 
+[source,java]
+----
+include::src/main/java/com/example/demo/Customer.java[]
+----
+
 :: show code for a record for `Customer` :: // look mom, no Lombok!
 
 I love records! And you should too! Don't sleep on records. This innocuous little record isn't just a better way to do something like Lombok's `@Data` annotation does, it's actually part of a handful of features that, culminating in Java 21 and taken together, support something called _data-oriented programming_.
