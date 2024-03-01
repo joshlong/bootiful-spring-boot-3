@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?asciidoc-toc?>
+<?asciidoc-numbered?>
+<article xmlns="http://docbook.org/ns/docbook" xmlns:xl="http://www.w3.org/1999/xlink" version="5.0" xml:lang="en">
+<info>
+<title>Bootiful Spring Boot 3.2</title>
+<date>2024-02-29</date>
+</info>
+<simpara>NB: the code is <link xl:href="https://github.com/joshlong/bootiful-spring-boot-3/tree/main/02-2024/service">here</link>.</simpara>
+<simpara>Hi, Spring fans! I&#8217;m Josh Long, and I work on the Spring team. I&#8217;m a Kotlin GDE and a Java Champion, and I&#8217;m of the opinion that there&#8217;s never been a better time to be a Java and Spring Boot developer. I say that fully aware of where we stand in the span of things today. It&#8217;s been 21+ years since the earliest releases of the Spring Framework and 11+ years since the earliest releases of Spring Boot. This year marks 20 years since the Spring Framework and 10 years since Spring Boot. So, when I say there&#8217;s never been a better time to be a Java and Spring developer, bear in mind I&#8217;ve been in this for the better part of those decades. I love Java and the JVM,  and I love Spring, and it&#8217;s been amazing.</simpara>
+<simpara>But this is the best time. It&#8217;s never been close. So, let&#8217;s develop a new application, as always, by visiting my second favorite place on the internet, after production, <literal>start.spring.io</literal>[<link xl:href="https://start.spring.io">https://start.spring.io</link>], and we&#8217;ll see what I mean. Click <literal>Add Dependencies</literal> and choose <literal>Web</literal>, <literal>Spring Data JDBC</literal>, <literal>OpenAI</literal>, <literal>GraalVM Native Support</literal>, <literal>Docker Compose</literal>, <literal>Postgres</literal>, and <literal>Devtools</literal>.</simpara>
+<simpara>Give it an artifact name. I called my service… "service". I&#8217;m great with names. I get that from my dad. My dad was also amazing with names. When I was a small boy, we had a tiny little white dog, and my father named him <emphasis>White Dog</emphasis>. He was our family pet for years. But after around ten years, he disappeared. I&#8217;m not sure what became of him after all. Maybe he got a job; I don&#8217;t know. But then miraculously, another small white dog appeared tapping on our home&#8217;s screen door. So we took him in, and my father named him <emphasis>Too</emphasis>. Or <emphasis>Two</emphasis>. I don&#8217;t know. Anyway, <emphasis>great</emphasis> with names. That said, my mom tells me all the time that I&#8217;m very lucky she named me&#8230;&#8203; And, yah, that&#8217;s probably true.</simpara>
+<simpara>Anyway, choose Java 21. This part is key. You can&#8217;t use Java 21 if you don&#8217;t use Java 21. So, you need Java 21. But we are also going to use GraalVM for its native image capabilities.</simpara>
+<simpara>Don&#8217;t have Java 21 installed? Download it! Use the fantastic <link xl:href="https://sdkman.io">SDKMAN</link> tool: <literal>sdk install java 21-graalce</literal>. And then make it your default: <literal>sdk default java 21-graalce</literal>. Open a new shell. Download the <literal>.zip</literal> file.</simpara>
+<simpara>Java 21 is amazing. It&#8217;s a far sight better than Java 8. It&#8217;s technically superior in every way. It&#8217;s faster, more robust, more syntax-rich. It&#8217;s also morally superior. You won&#8217;t like the look of shame and disgrace in your children&#8217;s eyes when they see you&#8217;re using Java 8 in production. Don&#8217;t do it. Be the change you want to see in the world. Use Java 21.</simpara>
+<simpara>You&#8217;ll get a zip file. Unzip it and open it in your IDE.</simpara>
+<simpara>I&#8217;m using IntelliJ IDEA, and it installs a command-line tool called <literal>idea</literal>.</simpara>
+<programlisting language="shell" linenumbering="unnumbered">cd service
+idea build.gradlew
+# idea pom.xml if you're using Apache Maven</programlisting>
+<simpara>If you&#8217;re using  Visual Studio Code, be sure to install the <link xl:href="https://marketplace.visualstudio.com/items?itemName=vmware.vscode-boot-dev-pack"><emphasis>Spring Boot Extension Pack</emphasis></link> on the <emphasis>Visual Studio Code Marketplace</emphasis>.</simpara>
+<simpara>This  new application is going to be talking to a database; it&#8217;s a data-centric application. On the <emphasis>Spring Initializr</emphasis>, we added support for  PostgreSQL, but now we need to connect to it. The last thing we want is a long <literal>README.md</literal> with a section titled, <emphasis>A Hundred Easy Steps to Development</emphasis>. We want to live that <emphasis>`git clone` &amp; Run</emphasis> life!</simpara>
+<simpara>To that end, the Spring Initializr generated a <link xl:href="https://github.com/docker/compose">Docker Compose</link> <literal>compose.yml</literal> file that contains a definition for Postgres, the amazing SQL database.</simpara>
+<formalpara>
+<title>the Docker Compose file, <literal>compose.yaml</literal></title>
+<para>
+<programlisting language="yaml" linenumbering="unnumbered">services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=mydatabase'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=myuser'
+    ports:
+      - '5432'</programlisting>
+</para>
+</formalpara>
+<simpara>Even better, Spring Boot is configured to automatically run the Docker Compose (<literal>docker compose up</literal>) configuration  when the Spring Boot application starts up. No need to configure connectivity details like <literal>spring.datasource.url</literal> and <literal>spring.datasource.password</literal>, etc. It&#8217;s all done with Spring Boot&#8217;s amazing  autoconfiguration. Ya love to see it! And, never wanting to leave a mess, Spring Boot will shut down the Docker containers on application shutdown, too.</simpara>
+<simpara>We want to move as quickly as possible. To that end, we selected DevTools on the <emphasis>Spring Initializr</emphasis>. It&#8217;ll allow us to move quickly. The core conceit here is that restarting Java is pretty slow. Restarting Spring, however, is really quick. So, what if we had a process monitoring our project folder, and that could  take note of newly compiled <literal>.class</literal> files, load them into the classloader, and then create a new Spring <literal>ApplicationContext</literal>, discarding the old one, and giving us the appearance of a live reload? That&#8217;s exactly what Spring&#8217;s DevTools do. Run it during development and see your restart time diminish by huge fractions!</simpara>
+<simpara>This works because, again, Spring is super quick to startup&#8230;&#8203; <emphasis>Except</emphasis>, that is, when you are launching a PostgreSQL database on each restart. I love PostgreSQL, but, uh, yeah, it&#8217;s not meant to be constantly restarted each time you&#8217;re tweaking method names, modifying HTTP endpoint paths, or finessing some CSS. So, let&#8217;s configure Spring Boot to simply start the Docker Compose file, and to leave it running instead of restarting each time.</simpara>
+<formalpara>
+<title>add the property to <literal>application.properties</literal></title>
+<para>
+<programlisting language="properties" linenumbering="unnumbered">spring.docker.compose.lifecycle-management=start_only</programlisting>
+</para>
+</formalpara>
+<simpara>We&#8217;ll start with a simple record.</simpara>
+<programlisting language="java" linenumbering="unnumbered">package com.example.service;
+
+import org.springframework.data.annotation.Id;
+
+// look mom, no Lombok!
+record Customer(@Id Integer id, String name) {
+}</programlisting>
+<simpara>I love Java records! And you should too! Don&#8217;t sleep on records. This innocuous little <literal>record</literal> isn&#8217;t just a better way to do something like Lombok&#8217;s <literal>@Data</literal> annotation does, it&#8217;s actually part of a handful of features that, culminating in Java 21 and taken together, support something called <emphasis>data-oriented programming</emphasis>.</simpara>
+<simpara>Java language architect Brian Goetz talks about this in his <link xl:href="https://www.infoq.com/articles/data-oriented-programming-java/">InfoQ article on Data-Oriented Programming</link> in 2022.</simpara>
+<simpara>Java has dominated the world of the monolith, the reasoning goes, because of its strong access control, good and quick compiler, privacy protections, and so on. Java makes it easy to create relatively modular, composable, monolithic applications. Monolithic applications are typically large, sprawling codebases, and Java supports it. Indeed, if you want modularity and want to structure your large monolithic codebase well, check out the <link xl:href="https://spring.io/projects/spring-modulith">Spring Modulith</link> project.</simpara>
+<simpara>But things have changed. These days, the vector by which we express change in a system these days is <emphasis>not</emphasis> the specialized implementations of deep-seated hierarchies of abstract types (through dynamic dispatch and polymorphism), but instead in terms of the often ad-hoc messages that get sent across the wire, via HTTP/REST, gRPC, messaging substrates like Apache Kafka and RabbitMQ, etc. It&#8217;s the data, dummy!</simpara>
+<simpara>Java has evolved to support these new patterns. Let&#8217;s take a look at four key features - records, pattern matching, smart switch expressions, and sealed types - to see what I mean. Suppose we work in a heavily regulated industry, like finance.</simpara>
+<simpara>Imagine we have an interface called <literal>Loan</literal>. Obviously, loans are heavily regulated financial instruments. We don&#8217;t want somebody coming along and adding an anonymous inner class implementation of the <literal>Loan</literal> interface, sidestepping the validation and protection we&#8217;ve worked so earnestly to build into the system.</simpara>
+<simpara>So, we&#8217;ll use <literal>sealed</literal> types. Sealed types are a new sort of access control or visibility modifier.</simpara>
+<programlisting language="java" linenumbering="unnumbered">package com.example.service;
+
+sealed interface Loan permits SecuredLoan, UnsecuredLoan {
+
+}
+
+record UnsecuredLoan(float interest) implements Loan {
+}
+
+final class SecuredLoan implements Loan {
+
+}</programlisting>
+<simpara>In the example, we&#8217;re explicitly stipulating that there are two implementations of <literal>Loan</literal> in the system: <literal>SecuredLoan</literal> and <literal>UnsecuredLoan</literal>. Classes are open for subclassing by default, which violates the guarantees implied by a sealed hierarchy. So, we explicitly make the <literal>SecuredLoan</literal> <literal>final</literal>. The <literal>UnsecuredLoan</literal> is implemented as a record, and is implicitly final.</simpara>
+<simpara>Records are Java&#8217;s answer to tuples. They are tuples. It&#8217;s just that Java is a nominal language: <emphasis role="strong">things have names</emphasis>. This tuple has a name, too: <literal>UnsecuredLoan</literal>.  Records give us a lot of power if we agree to the contract they imply. The core conceit of records is that the identity of the object is equal to the identity of the fields, they&#8217;re called 'components', in a record. So in this case, the identity of the record is equal to the identity of the <literal>interest</literal> variable. If we agree to that, then the compiler can give us a constructor, it can give us storage for each of the components, it can give us a <literal>toString</literal> method, a <literal>hashCode</literal> method, and an <literal>equals</literal> method. And it&#8217;ll give us accessors for the components in the constructor. Nice! <emphasis>And</emphasis>, it supports destructuring! The language knows how to extract out the state for the record.</simpara>
+<simpara>Now, let&#8217;s say I wanted to display a message for each type of <literal>Loan</literal>. I&#8217;ll code up a method. Here&#8217;s the naïve first implementation.</simpara>
+<programlisting language="java" linenumbering="unnumbered">	@Deprecated
+	String badDisplayMessageFor(Loan loan) {
+		var message = "";
+		if (loan instanceof SecuredLoan) {
+			message = "good job! ";
+		}
+		if (loan instanceof UnsecuredLoan) {
+			var usl = (UnsecuredLoan) loan;
+			message = "ouch! that " + usl.interest() + "% interest rate is going to hurt!";
+		}
+		return message;
+	}</programlisting>
+<simpara>This works, sort of. But it&#8217;s not carrying its weight.</simpara>
+<simpara>We can clean it up. Let&#8217;s take advantage of pattern matching, like this:</simpara>
+<programlisting language="java" linenumbering="unnumbered">	@Deprecated
+	String notGreatDisplayMessageFor(Loan loan) {
+		var message = "";
+		if (loan instanceof SecuredLoan) {
+			message = "good job! ";
+		}
+		if (loan instanceof UnsecuredLoan usl) {
+			message = "ouch! that " + usl.interest() + "% interest rate is going to hurt!";
+		}
+		return message;
+	}</programlisting>
+<simpara>Better. Note that we&#8217;re using pattern matching to match the shape of the object and then extract the definitively cast-able thing into a variable, <literal>usl</literal>. We don&#8217;t even really need the <literal>usl</literal> variable, though, do we. Instead, we want to dereference the <literal>interest</literal> variable. So we can change the pattern matching to extract that variable, like this.</simpara>
+<programlisting language="java" linenumbering="unnumbered">	@Deprecated
+	String notGreatDisplayMessageFor(Loan loan) {
+		var message = "";
+		if (loan instanceof SecuredLoan) {
+			message = "good job! ";
+		}
+		if (loan instanceof UnsecuredLoan(var interest) ) {
+			message = "ouch! that " + interest + "% interest rate is going to hurt!";
+		}
+		return message;
+	}</programlisting>
+<simpara>What happens if I comment out one of the branches? Nothing! The compiler doesn&#8217;t care.  We&#8217;re not handling one of the critical paths through which this code could pass.</simpara>
+<simpara>Likewise, I have this value stored in a variable, <literal>message</literal>, and I&#8217;m assigning it as a side effect of some condition. Wouldn&#8217;t it be nice if I could cut out the intermediate value and just return some expression? Let&#8217;s look at a cleaner implementation using smart switch expressions, another nifty novelty in Java.</simpara>
+<programlisting language="java" linenumbering="unnumbered">	String displayMessageFor(Loan loan) {
+		return switch (loan) {
+			case SecuredLoan sl -&gt; "good job! ";
+			case UnsecuredLoan(var interest) -&gt; "ouch! that " + interest + "% interest rate is going to hurt!";
+		};
+	}</programlisting>
+<simpara>This version uses smart switch expressions to return a value and pattern matching. If you comment out one of the branches, the compiler will bark, because - thanks to sealed types - it knows that you haven&#8217;t exhausted all possible options. Nice! The compiler is doing a lot of work for us! The result is both cleaner and more expressive. Mostly.</simpara>
+<simpara>So, back to our regularly scheduled programming.  Add an interface for the Spring Data JDBC repository and a Spring MVC controller class. Then start the application up. Notice that this takes an exceedingly long period of time! That&#8217;s because behind the scenes, it&#8217;s using the Docker daemon to start up the PostgreSQL instance.</simpara>
+<simpara>But henceforth, we&#8217;re going to use Spring Boot&#8217;s  <literal>DevTools</literal>. You only need to recompile. If the app is running, and you&#8217;re using Eclipse or Visual Studio Code, you will only need to save the file: CMD+S on a macOS. IntelliJ IDEA doesn&#8217;t have a <literal>Save</literal> option; force a build with CMD+Shift+F9 on macOS. Nice.</simpara>
+<simpara>Alright, we&#8217;ve got our HTTP web endpoint babysitting a database, but there&#8217;s nothing in the database, so this will fail, surely. Let&#8217;s initialize our database with some schema and some sample data.</simpara>
+<simpara>Add <literal>schema.sql</literal> and <literal>data.sql</literal>.</simpara>
+<formalpara>
+<title>the DDL for our application, <literal>schema.sql</literal></title>
+<para>
+<programlisting language="java" linenumbering="unnumbered">create table if not exists customer  (
+    id serial primary key ,
+    name text not null
+) ;</programlisting>
+</para>
+</formalpara>
+<formalpara>
+<title>some sample data for the application, <literal>data.sql</literal></title>
+<para>
+<programlisting language="java" linenumbering="unnumbered">delete from customer;
+insert into customer(name) values ('Josh') ;
+insert into customer(name) values ('Madhura');
+insert into customer(name) values ('Jürgen') ;
+insert into customer(name) values ('Olga');
+insert into customer(name) values ('Stéphane') ;
+insert into customer(name) values ('Dr. Syer');
+insert into customer(name) values ('Dr. Pollack');
+insert into customer(name) values ('Phil');
+insert into customer(name) values ('Yuxin');
+insert into customer(name) values ('Violetta');</programlisting>
+</para>
+</formalpara>
+<simpara>Make sure to tell Spring Boot to run the SQL files on startup by adding the following property to <literal>application.properties</literal>:</simpara>
+<programlisting language="properties" linenumbering="unnumbered">spring.sql.init.mode=always</programlisting>
+<simpara>Reload the application: CMD+Shift+F9, on macOS. On my computer, that reload is about 1/3rd the time, or 66% less, than it takes to restart both the JVM and the application itself. Huge.</simpara>
+<simpara>It&#8217;s up and running. Visit <literal><link xl:href="http://localhost:8080/customers">http://localhost:8080/customers</link></literal> to see the results. It worked! Of course, it worked. It was a demo. It was always going to work.</simpara>
+<simpara>This is all pretty stock standard stuff. You could&#8217;ve done something similar ten years ago. Mind you, the code would&#8217;ve been far more verbose. Java&#8217;s improved by leaps and bounds since then. And of course, the speeds wouldn&#8217;t have been comparable. And of course, the abstractions are better now. But you could&#8217;ve done something similar - a web application babysitting a database.</simpara>
+<simpara>Things change. There are always new frontiers. Right now, the new frontier is <emphasis role="strong">Artificial Intelligence</emphasis>, or AI. AI: because the search for good ol' <emphasis role="strong">Intelligence</emphasis> clearly wasn&#8217;t hard enough.</simpara>
+<simpara>AI is a huge industry, but what most people mean when they think of AI is <emphasis>leveraging</emphasis> AI. You don&#8217;t need to use Python to use Large Language Models (LLMs), in the same way that most folks don&#8217;t need to use C to use SQL databases. You just need to integrate with the LLMs, and here Java is second to none for choice and power.</simpara>
+<simpara>At our last tentpole  <link xl:href="https://springone.io/history-of-spring">SpringOne</link> developer event, in 2023, we announced <link xl:href="https://spring.io/projects/spring-ai"><emphasis role="strong">Spring AI</emphasis></link>, a new project that aims to make integrating and working with AI as easy as possible.</simpara>
+<simpara>You&#8217;ll want to ingest data, say from an account, files, services, or even a set of PDFs. You&#8217;ll want to store them for easy retrieval in a vector database to support similarity searches. And you&#8217;ll want to then integrate with an LLM, giving it data from that vector database.</simpara>
+<simpara>Sure, there are client bindings for any of the LLMs that you could possibly want - <link xl:href="https://docs.aws.amazon.com/bedrock/">Amazon Bedrock</link>, <link xl:href="https://azure.microsoft.com/en-us/products/ai-services/openai-service">Azure OpenAI</link>, <link xl:href="https://cloud.google.com/vertex-ai/docs/reference/rest">Google Vertex</link> <emphasis>and</emphasis> <link xl:href="https://ai.google.dev/docs/gemini_api_overview">Google Gemini</link>, <link xl:href="https://ollama.com">Ollama</link>, <link xl:href="https://huggingface.co">HuggingFace</link>, and of course <link xl:href="https://openai.com">OpenAI</link> itself, but that&#8217;s <emphasis>just the beginning</emphasis>.</simpara>
+<simpara>All the knowledge that powers an LLM is baked into a model, and that model then informs the LLM&#8217;s understanding of the world. But that model has an expiry date, of sorts, after which its knowledge is stale. If the model was built two weeks ago it won&#8217;t know about something that happened yesterday. So if you want to build, say, an automated assistant that fields requests from users about their bank accounts, then that LLM is going to need to be apprised of the up-to-date state of the world when it does so.</simpara>
+<simpara>You can add information in the request that you make and use it as context to inform the response. If it were only this simple, then that wouldn&#8217;t be so bad. There&#8217;s another wrinkle. Different LLMs support different <emphasis>token window sizes</emphasis>. The token window determines how much data can you send and receive for a given request. The smaller the window, the less information you can send, and the less informed the LLM will be in its response.</simpara>
+<simpara>One thing you might do here is to put the data in a vector store, like <link xl:href="https://github.com/pgvector/pgvector">pgvector</link>, <link xl:href="https://neo4j.org">Neo4j</link>,  <link xl:href="http://weaviate.io">Weaviate</link>, or otherwise, and then connect your LLM to that vector database. Vector stores give you the ability to, given a word or sets of words, find other things that are similar to them. It stores data as mathematical representations and lets you query for similar things.</simpara>
+<simpara>This whole process of ingesting, enriching, analyzing and digesting data to inform the response from an LLM is called <emphasis role="strong">Retrieval Augmented Generation</emphasis> (RAG), Spring AI supports all of it. For more, see this <link xl:href="https://www.youtube.com/watch?v=aNKDoiOUo9M">Spring Tips video I did on Spring AI</link>.  We&#8217;re not going to leverage all these capabilities here, however. Just one.</simpara>
+<simpara>We added <literal>OpenAI</literal> support on the Spring Initializr so Spring AI is already on the classpath. Add a new controller, like this:</simpara>
+<formalpara>
+<title>an AI-powered Spring MVC controller</title>
+<para>
+<programlisting language="java" linenumbering="unnumbered">package com.example.service;
+
+import org.springframework.ai.chat.ChatClient;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Map;
+
+@Controller
+@ResponseBody
+class StoryController {
+
+	private final ChatClient singularity;
+
+	StoryController(ChatClient singularity) {
+		this.singularity = singularity;
+	}
+
+	@GetMapping("/story")
+	Map&lt;String, String&gt; story() {
+		var prompt = """
+				Dear Singularity,
+
+				Please write a story about the good folks of San Francisco, capital of all things Artificial Intelligence,
+				and please do so in the style of famed children's author Dr. Seuss.
+
+				Cordially,
+				Josh Long
+				""";
+		var reply = this.singularity.call(prompt);
+		return Map.of("message", reply);
+	}
+
+}</programlisting>
+</para>
+</formalpara>
+<simpara>Pretty straightforward! Inject Spring AI&#8217;s <literal>ChatClient</literal>, use it to send a request to the LLM, get the response, and return it as JSON to the HTTP client.</simpara>
+<simpara>You&#8217;ll need to configure your connection to OpenAI&#8217;s API with a property, <literal>spring.ai.openai.api-key=</literal>. I exported it as an environment variable, <literal>SPRING_AI_OPENAI_API_KEY</literal>, before I ran the program. I won&#8217;t reproduce my key here. Forgive me for not leaking my API credential.</simpara>
+<simpara>CMD+Shift+F9 to reload the application, and then visit the endpoint: <literal><link xl:href="http://localhost:8080/story">http://localhost:8080/story</link></literal>. The LLM might take a few seconds to produce a response, so get that cup of coffee, glass of water, or whatever, ready for a quick but satisfying sip.</simpara>
+<figure>
+<title>the JSON response in my browser, with a JSON formatter plugin enabled</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/story-time-ai-response.png"/>
+</imageobject>
+<textobject><phrase>story time ai response</phrase></textobject>
+</mediaobject>
+</figure>
+<simpara>There it is! We live in an age of miracles! The age of the freaking singularity! You can do anything now.</simpara>
+<simpara>But it did take a few seconds, didn&#8217;t it? I don&#8217;t begrudge the computer that time! It did a splendid job! I couldn&#8217;t do that any faster. Just look at the story it generated! It&#8217;s a work of art.</simpara>
+<simpara>But it did take a while. And that has scalability implications for our applications. Behind the scenes when we make a call to our LLM, we&#8217;re making a network call. Somewhere, deep in the bowels of the code, there&#8217;s a <literal>java.net.Socket</literal> from which we&#8217;ve obtained a  <literal>java.io.InputStream</literal> that represents the <literal>byte[]</literal> data coming from the service. I don&#8217;t know if you remember using <literal>InputStream</literal> directly. Here&#8217;s an example:</simpara>
+<programlisting language="java" linenumbering="unnumbered">    try (var is = new FileInputStream("afile.txt")) {
+        var next = -1;
+        while ((next = is.read()) != -1) {
+            next = is.read();
+            // do something with read
+        }
+    }</programlisting>
+<simpara>See that part where we read bytes in from the <literal>InputStream</literal> by calling <literal>InputStream.read</literal>? We call that a <emphasis role="strong">blocking operation</emphasis>. If we call <literal>InputStream.read</literal> on line four, then we must wait until the call returns until we can get to line five.</simpara>
+<simpara>What if the service to which we&#8217;re connecting   simply returns too much data? What if the service is down? What if it never returns? What if we&#8217;re stuck, waiting, in perpetuity? <emphasis>What if</emphasis>?</simpara>
+<simpara>This is <emphasis>tedious</emphasis> if it only happens once. But it&#8217;s an existential threat for our services if it can happen on every thread in the system used to handle HTTP requests. This happens a lot. It&#8217;s the reason why it&#8217;s possible to log in to an otherwise unresponsive HTTP service and find that the CPU is basically asleep - idle! - doing absolutely nothing or little at all. All the threads in the thread pool are stuck in a wait state waiting for something that&#8217;s not coming.</simpara>
+<simpara>This is a huge waste of the valuable CPUs capacity we have paid for. And the best-case scenario is still not good. Even if the method will eventually return, it still means that the thread on which that request is being handled is unavailable to anything else in the system. The method is monopolizing that thread so nobody else in the system can use it. This wouldn&#8217;t be an issue if threads were cheap and abundant. But they&#8217;re not. For most of Java&#8217;s lifetime, each new thread was paired one to one with an operating system thread. And it was not cheap. There&#8217;s a certain amount of bookkeeping associated with each thread. One to two megabytes. So you won&#8217;t be able to create many threads, and you&#8217;re wasting what few threads you do have. The horror! Who needs sleep anyway?</simpara>
+<simpara>There&#8217;s got to be a better way.</simpara>
+<simpara>You can use non-blocking IO. Things like the hemorrhoid-inducing and complex Java NIO library. This is an option, in the same way that living with a family of skunks is an option: it stinks! Most of us don&#8217;t think in terms of non-blocking IO, or regular IO, anyway. We live at higher rungs on the abstraction ladder.  We could use reactive programming. I <emphasis>love</emphasis> reactive programming. I even wrote a book about it - <emphasis>Reactive Spring</emphasis>[<link xl:href="https://reactivespring.io">https://reactivespring.io</link>]. But it&#8217;s not exactly obvious how to make that work if you&#8217;re not used to thinking like a functional programmer. It&#8217;s a different paradigm and implies a rewrite of your code.</simpara>
+<simpara>What if we could have our non-blocking cake and eat it too? With <link xl:href="https://openjdk.org">Java 21</link>, now we can! There&#8217;s a new feature called virtual threads that makes this stuff a ton easier! If you do something blocking on one of these new <emphasis>virtual threads</emphasis>, the runtime will detect that you&#8217;re doing a blocking thing - like <literal>java.io.InputStream.read</literal>, <literal>java.io.OutputStream.write</literal>, and <literal>java.lang.Thread.sleep</literal> - and move that blocking, idle activity off of the thread and into RAM. Then, it&#8217;ll basically set an egg timer for sleep, or monitor the file descriptor for IO, and let the runtime repurpose the thread for something else in the meantime. When the blocking action has finished, the runtime moves it back onto a thread and lets it continue from where it started, all with almost no changes to your code. It&#8217;s hard to understand, so let&#8217;s look at it by way of an example. I  shamelessly  <emphasis>borrowed</emphasis> this example  from Oracle Developer Advocate <link xl:href="https://twitter.com/josepaumard">José Paumard</link>.</simpara>
+<formalpara>
+<title>this example demonstrates creating 1,000 threads and sleeping for 400 milliseconds on each one, while noting the name of the first of those 1,000 threads.</title>
+<para>
+<programlisting language="java" linenumbering="unnumbered">package com.example.service;
+
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
+
+@Configuration
+class Threads {
+
+	private static void run(boolean first, Set&lt;String&gt; names) {
+		if (first)
+			names.add(Thread.currentThread().toString());
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Bean
+	ApplicationRunner demo() {
+		return args -&gt; {
+
+			// store all 1,000 threads
+			var threads = new ArrayList&lt;Thread&gt;();
+
+			// dedupe elements with Set&lt;T&gt;
+			var names = new ConcurrentSkipListSet&lt;String&gt;();
+
+			// merci José Paumard d'Oracle
+			for (var i = 0; i &lt; 1000; i++) {
+				var first = 0 == i;
+				threads.add(Thread.ofPlatform().unstarted(() -&gt; run(first, names)));
+			}
+
+			for (var t : threads)
+				t.start();
+
+			for (var t : threads)
+				t.join();
+
+			System.out.println(names);
+		};
+	}
+
+}</programlisting>
+</para>
+</formalpara>
+<simpara>We&#8217;re using the <literal>Thread.ofPlatform</literal> factory method to create regular  ol' platform threads, identical in nature to the threads we&#8217;ve created basically since Java&#8217;s debut in the 1990&#8217;s. The program creates 1,000 threads. In each thread, we sleep for 100 milliseconds, four times. In between, we test if we&#8217;re on the first of the 1000 threads, and if we are, we note the current thread&#8217;s name by adding it to a set. A set dedupes its elements; if the same name appears more than once, there&#8217;ll still only be one element in the set.</simpara>
+<simpara>Run the program (CMD+Shift+F9!) and you&#8217;ll see that the physics of the program are unchanged. There is only one name in the <literal>Set&lt;String&gt;</literal>. Why wouldn&#8217;t there be? We only tested the same thread, over and over.</simpara>
+<simpara>Now, change that constructor to use <emphasis>virtual threads</emphasis>: <literal>Thread.ofVirtual</literal>. Super easy change. And now run the program.  CMD+Shift+F9.</simpara>
+<simpara>You&#8217;ll see that there is more than one element in the set. You didn&#8217;t change the core logic of your code at all. And indeed you only even had to change <emphasis>one</emphasis> thing, but now, seamlessly, behind the scenes, the compiler and the runtime rewrote your code so that when something blocking   happens on a virtual thread, the runtime seamlessly takes you off and puts you back on threads after the blocking thing has concluded. This means that the thread on which you existed before is now available to other parts of the system. Your scalability is going to go through the roof!</simpara>
+<simpara>And you might protest, well I don&#8217;t want to have to change all my code. First, that&#8217;s a ridiculous argument, the change is trivial. You might protest: I don&#8217;t want to be in the business of creating threads, either. Good point. Tony Hoare, in the 1970&#8217;s, wrote that <literal>NULL</literal> is the 1 billion dollar mistake. He was wrong. It was, in fact, PHP. But, he also spoke at length about how untenable it was to build systems using threading. You&#8217;re going to want to work with higher order abstractions, like sagas, actors, or at the very least an <literal>ExecutorService</literal>.</simpara>
+<simpara>And there&#8217;s a new virtual thread executor as well: <literal>Executors.newVirtualThreadPerTaskExecutor</literal>. Nice! If you&#8217;re using Spring Boot, it&#8217;s trivial to override the default bean of that type for use in parts of the system. Spring Boot will pull that in and defer to it instead. Easy enough. But if you&#8217;re using Spring Boot 3.2 You are, surely, using Spring Boot 3.2, right? You realize that each release is only support for like a year, right? Make sure to check out an given <link xl:href="https://spring.io/projects/spring-boot#support">Spring projects' support policy</link>. If you are using 3.2,  then you need only add one property to <literal>application.properties</literal> and we&#8217;ll plugin the virtual thread support for you.</simpara>
+<programlisting language="properties" linenumbering="unnumbered">spring.threads.virtual.enabled=true</programlisting>
+<simpara>Nice! No code changes required. And now you should see much improved scalability, and might be able to scale down some of the instances in your load balancer, if your services are IO bound. My suggestion? Tell your boss you&#8217;re gonna save the company a ton of cash but insist you want that money in your paycheck. Then deploy this change. Voilà!</simpara>
+<simpara>Alright, we&#8217;re moving quickly. We&#8217;ve got <literal>git clone</literal> &amp; run-ability. We&#8217;ve got Docker compose support. We&#8217;ve got DevTools. We have a very nice language and syntax. We&#8217;ve got the freaking singularity. We&#8217;re moving quickly. We&#8217;ve got scalability. Add the Spring Boot Actuator to the build and now you&#8217;ve got observability. I think it&#8217;s time we turned to production.</simpara>
+<simpara>I wanna package this application up and make it as efficient as possible. Here, my friends, there are a couple of things we need to consider. First of all, how do we containerize the application? Simple. Use <link xl:href="https://buildpacks.io">Buildpacks</link>. Easy. Remember, friends don&#8217;t let friends write Dockerfiles. Use Buildpacks. They&#8217;re supported out of the box with Spring Boot, too: <literal>./gradlew buildBootImage</literal> or <literal>./mvnw spring-boot:build-image</literal>. This isn&#8217;t new though, so next question.</simpara>
+<simpara>How do we get this thing to be as efficient and optimized as possible? And before we dive into this, my friends, it&#8217;s important to remember that Java is already very very very efficient. I love <link xl:href="https://thenewstack.io/which-programming-languages-use-the-least-electricity/">this blog</link> from 2018, before the COVID pandemic, or <emphasis>BC</emphasis>.</simpara>
+<simpara>It looks at which languages use the least energy, or are the most energy-efficient. C is the most energy-efficient. It uses the least electricity. 1.0. It&#8217;s the baseline. It&#8217;s efficient&#8230;&#8203; for <emphasis role="strong">MACHINES</emphasis>. Not people! Definitely, <emphasis>not</emphasis>  people.</simpara>
+<simpara>Then we have Rust and its zero-cost abstractions. Well done.</simpara>
+<simpara>Then we have C++&#8230;&#8203;</simpara>
+<informalfigure>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/gross.gif"/>
+</imageobject>
+<textobject><phrase>gross</phrase></textobject>
+</mediaobject>
+</informalfigure>
+<simpara>C++ is disgusting! Moving on&#8230;&#8203;</simpara>
+<simpara>Then we have the Ada language, but.. who cares?</simpara>
+<simpara>And then we have Java, which is nearly 2.0. Let&#8217;s just round up and say 2.0. Java is two times - twice! - as inefficient as C. Or one half  as efficient as C.</simpara>
+<simpara>So far so good? Great. It&#8217;s in the top 5 most efficient languages, though!</simpara>
+<simpara>If you scroll the list, you&#8217;ll see some amazing numbers. Go and C# coming in around the 3.0+ range. Scroll down here, and we have JavaScript and TypeScript, one of which - to my endless bafflement - is four times <emphasis>less</emphasis> efficient than the other!</simpara>
+<simpara>Then we have PHP and Hack, the less said about which the better. Moving on!</simpara>
+<simpara>Then we have JRuby and Ruby. Friends, remember <link xl:href="https://www.jruby.org">JRuby</link> is <link xl:href="https://www.ruby-lang.org/en/">Ruby</link>, written in Java. And Ruby is Ruby, written in C. And yet JRuby is almost a one third more efficient than Ruby! Just by dint of having been written in Java, and running on the JVM. The JVM is an amazing piece of kit. Absolutely phenomenal.</simpara>
+<simpara>Then.. we have Python. And this, well this makes me very sad indeed! I <emphasis>love</emphasis> Python! I&#8217;ve been using Python since the 1990&#8217;s! Bill Clinton was president when I first learned Python! But these numbers are <emphasis>not</emphasis> great. Think about it. 75.88. Let&#8217;s round up to 76. I&#8217;m not great at math. But you know what is? Freakin' Python! Let&#8217;s ask it.</simpara>
+<informalfigure>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/python-doing-math.png"/>
+</imageobject>
+<textobject><phrase>python doing math</phrase></textobject>
+</mediaobject>
+</informalfigure>
+<simpara>38! That means that if you ran a program in Java, and the generation of the energy required to run it creates a bit of carbon that ends up  trapped in the atmosphere, raising the temperature, and that heightened temperature in turn kills ONE tree, then the equivalent program in Python would kill THIRTY-EIGHT trees! That&#8217;s a forest! That&#8217;s worse than Bitcoin! We need to do something about this, and soon. I don&#8217;t know what, but something.</simpara>
+<simpara>Anyway, what I&#8217;m trying to say is that Java is already <emphasis>amazing</emphasis>. I think this is because of two things that people take for granted: garbage collection and the Just In Time (JIT) compiler.</simpara>
+<simpara>Garbage collection, well we all know what it is. Heck, <link xl:href="https://www.whitehouse.gov/wp-content/uploads/2024/02/Final-ONCD-Technical-Report.pdf">even the White House appreciates garbage-collected, memory-safe languages</link> like Java in its recent report on securing software to secure the building blocks of cyberspace.</simpara>
+<simpara>The Java programming language garbage collector lets us write mediocre software and sort of <emphasis>get away</emphasis> with it. It&#8217;s dope! That said, I do take issue with the notion that it is the <emphasis>original</emphasis> Java garbage collector! That honor belongs elsewhere, like perhaps <link xl:href="https://twitter.com/jtannady/status/981547257479778307?lang=en">with Jesslyn</link>.</simpara>
+<simpara>And the JIT is another amazing piece of kit. It analyses frequently accessed code paths in your application and turns them into operating system and architecture-specific native code. It can only do this for some of your code though. It needs to know that the types that are in play when you compile the code are the only types that will be in play when you run the code. And some things in Java - a very dynamic language with a runtime that&#8217;s more akin to that of JavaScript, Ruby, and Python - allow Java programs to do things that would violate this constraint. Things like serialization, JNI, reflection, resource loading, and JDK proxies. Remember, it&#8217;s possible, with Java, to have a <literal>String</literal> that has as its contents a Java source code file, compile that string into a <literal>.class</literal> file on the filesystem, load the <literal>.class</literal> file into the <literal>ClassLoader</literal>, reflectively create an instance of that class, and then - if that class is an interface - to create a JDK proxy of that class. And if that class implements <literal>java.io.Serializable</literal>, it&#8217;s possible to write that class instance over a network socket and load it on another JVM.  And you can do all  of that without ever having an explicit typed reference to anything beyond <literal>java.lang.Object</literal>! It&#8217;s an amazing language, and this dynamic nature makes it a very productive language. It also frustrates the JIT&#8217;s attempt at optimizations.</simpara>
+<simpara>Still, the JIT does an amazing job where it can. And the results speak for themselves. So, one wonders: why couldn&#8217;t we proactively JIT the whole program? Ahead of time? And we can. There&#8217;s an OpenJDK distribution called <link xl:href="https://graalvm.org">GraalVM</link> that has a number of niceties that extend the OpenJDK release with extra tools like the <literal>native-image</literal> compiler. The native image compiler is dope. But this native image compiler has the same constraints. It can&#8217;t do its magic for very dynamic things. Which is a problem. As most code - your unit testing libraries, your web frameworks, your ORMs, your logging libraries… everything! - use one or all of those dynamic behaviors.</simpara>
+<simpara>There is an escape hatch. You can furnish configuration in the form of <literal>.json</literal> files to the GraalVM compiler in a well-known directory: <literal>src/main/resources/META-INF/native-image/$groupId/$artifactId/\*.json</literal>. These <literal>.json</literal> files have two problems.</simpara>
+<simpara>First, the word "JSON" sounds stupid. I don&#8217;t like saying the word "JAY-SAWN". As an adult, I can&#8217;t believe we say these things to each other. I speak French, and in French, you&#8217;d pronounce it <emphasis>jeeesã</emphasis>. So, <literal>.gison</literal>. Much nicer. The Hokkien language has a word - <emphasis>gingsong</emphasis> (happiness), which also could work. So you could have .gingsong. Pick your team! Either way,  <literal>.json</literal> should not stand. I&#8217;m team <literal>.gison</literal>, but it doesn&#8217;t matter.</simpara>
+<simpara>The second problem is that, well, there&#8217;s just so much darned of it that&#8217;s required! Again, just think about all the places where your programs do these fun, dynamic things like  reflection, serialization, JDK proxies, resource loading, and JNI! It&#8217;s endless. Your web frameworks. Your testing libraries. Your data access technologies. I don&#8217;t have time to write artisanal, handcrafted configuration files for every program. I don&#8217;t even have enough time to finish this blog!</simpara>
+<simpara>So, instead, we&#8217;ll use the Spring Boot  ahead-of-time (AOT) engine introduced in 3.0. The AOT engine analyses the beans in your Spring application and emits the requisite  configuration files for you. Nice! There&#8217;s even a whole component model that you can use that extends Spring to compile time. I won&#8217;t get into all of that here, but you can read my <link xl:href="https://tanzu.vmware.com/content/white-papers/spring-boot-3">free e-book</link> or watch my free YouTube video introducing all things   <link xl:href="https://www.youtube.com/watch?v=TOfYlLjXufw">Spring and AOT</link>. It&#8217;s basically the same content, just different ways to consume it.</simpara>
+<simpara>So let&#8217;s kick off that build with Gradle, <literal>./gradlew nativeCompile</literal>, or <literal>./mvnw -Pnative native:compile</literal> if you&#8217;re using Apache Maven. You might want to skip tests on this one&#8230;&#8203; This build will take a little while. Remember, it&#8217;s doing an analysis of everything in your codebase - be it the libraries on the classpath, the JRE, and the classes in your code itself - to determine which types it should preserve and which it should throw out. The result is a lean, mean, lightning-fast runtime machine, but at the cost of a very, <emphasis>very</emphasis> slow compilation time.</simpara>
+<simpara>It takes so long, in fact, that it kinda just gums up my flow. It stops me dead in my tracks, waiting. I am like the platform threads from earlier on, in this very blog: <emphasis>blocked</emphasis>! I get bored. Waiting. Waiting. I now finally understand this <link xl:href="https://xkcd.com/303/">famous XKCD cartoon</link>.</simpara>
+<simpara>Sometimes I start to hum music. Or theme songs. Or elevator music. You know what <link xl:href="https://en.wikipedia.org/wiki/Elevator_music">elevator music</link> sounds like, right? Ceaseless, endless. So, I thought, wouldn&#8217;t it be great if everyone heard elevator music, as well?  <link xl:href="https://github.com/oracle/graal/issues/5327">So I asked</link>.  I got some great responses.</simpara>
+<simpara>One suggested, from our friend  that we should play this elevator music from the soundtrack to the Nintendo 64 video game to the first Pierce Brosnan outing as James Bond, <emphasis>Goldeneye</emphasis>. I like it.</simpara>
+<figure>
+<title><emphasis>Goldeneye</emphasis> had some amazing elevator music!</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/adinn-elevator-music.png"/>
+</imageobject>
+<textobject><phrase>adinn elevator music</phrase></textobject>
+</mediaobject>
+</figure>
+<simpara>One response suggested that having a beeping sound would be useful. Couldn&#8217;t agree more. My stupid microwave will make a <emphasis>ding!</emphasis> sound when it&#8217;s done. Why couldn&#8217;t my multi-million line compiler?</simpara>
+<figure>
+<title><emphasis>DING!</emphasis></title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/ivan-beeps.png"/>
+</imageobject>
+<textobject><phrase>ivan beeps</phrase></textobject>
+</mediaobject>
+</figure>
+<simpara>And then we got this response, from another one of my favorite doctors, <link xl:href="https://twitter.com/fniephaus">Dr. Niephaus</link>, who works on the GraalVM team. He said that adding elevator music would only just fix the symptoms, and not the cause of the problem, which is making GraalVM even more efficient in terms of time and memory.</simpara>
+<informalfigure>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/doctor-niephaus.png"/>
+</imageobject>
+<textobject><phrase>doctor niephaus</phrase></textobject>
+</mediaobject>
+</informalfigure>
+<simpara>Ok. But he did share this promising prototype!</simpara>
+<informalfigure>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/graalvm-prototype.png"/>
+</imageobject>
+<textobject><phrase>graalvm prototype</phrase></textobject>
+</mediaobject>
+</informalfigure>
+<simpara>I&#8217;m sure it&#8217;ll get merged any day now&#8230;&#8203;</simpara>
+<simpara>Anyway! If you check the compilation, it should be done now. It&#8217;s in the <literal>./build/native/nativeCompile/</literal> folder, and it&#8217;s called <literal>service</literal>. On my machine, the compilation took 52 seconds. Yeesh!</simpara>
+<simpara>Run it. It&#8217;ll fail because, again, we&#8217;re living that <literal>git clone</literal> &amp; run lifestyle! We didn&#8217;t specify any connectivity credentials! So, run it with   environment variables specifying your SQL database connectivity details. Here&#8217;s the script I used on my Machine. This will work only on a Unix-flavored operating system, and works for either Maven or Gradle.</simpara>
+<programlisting language="shell" linenumbering="unnumbered">#!/usr/bin/env bash
+
+export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost/mydatabase
+export SPRING_DATASOURCE_PASSWORD=secret
+export SPRING_DATASOURCE_USERNAME=myuser
+
+SERVICE=.
+MVN=$SERVICE/target/service
+GRADLE=$SERVICE/build/native/nativeCompile/service
+ls -la $GRADLE &amp;&amp; $GRADLE || $MVN</programlisting>
+<simpara>On my machine, it starts up in ~100 milliseconds! Like a rocket! But I don&#8217;t really care all that much about that because this is a standalone, long-lived service. What I care about is the <link xl:href="https://en.wikipedia.org/wiki/RSS">Resident Set Size (RSS)</link>. Note the process identifier (PID) - it&#8217;ll be in the logs. If the PID is 55, then get the RSS like this using the <literal>ps</literal> utility, available on virtually all Unixes:</simpara>
+<programlisting language="shell" linenumbering="unnumbered">ps -o rss 55</programlisting>
+<simpara>It&#8217;ll dump out a number in kilobytes, so divide by a thousand, and you&#8217;ll get the number in megabytes. On my machine, it takes just over 100MB to run. You can&#8217;t run Slack in that tiny amount of RAM. I bet you&#8217;ve got individual browser tabs in Chrome taking that much.</simpara>
+<simpara>So, we have a program that is as concise as can be while being easy to develop and iterate on. And it uses virtual threads to give us unparalleled scalability. It runs as a standalone, self-contained, operating system and architecture-specific native image. Oh! And, it supports the freaking singularity!</simpara>
+<simpara>We live in an amazing time. There&#8217;s never been a better time to be a Java and Spring developer. I hope I&#8217;ve so persuaded you, too.</simpara>
+<simpara>If you enjoyed this blog, I hope you&#8217;ll subscribe to our <link xl:href="https://youtube.com/@springsourcedev">YouTube channel</link>, where I have new videos every week on the <link xl:href="https://bit.ly/spring-tips-playlist"><emphasis>Spring Tips</emphasis></link>. And, of course, you can find my <link xl:href="https://biodrop.io/joshlong">Twitter/X, website, YouTube channel, books, Podcast, and much more here</link>. Thank you!</simpara>
+</article>
