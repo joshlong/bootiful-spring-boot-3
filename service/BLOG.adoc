@@ -226,7 +226,7 @@ You'll need to configure your connection to OpenAI's API with a property, `sprin
 CMD+Shift+F9 to reload the application, and then visit the endpoint: `http://localhost:8080/story`. The LLM might take a few seconds to produce a response, so get that cup of coffee, glass of water, or whatever, ready for a quick but satisfying sip.
 
 .the JSON response in my browser, with a JSON formatter plugin enabled
-image::story-time-ai-response.png[]
+image::images/story-time-ai-response.png[]
 
 There it is! We live in an age of miracles! The age of the freaking singularity! You can do anything now.
 
@@ -298,7 +298,7 @@ Then we have Rust and its zero-cost abstractions. Well done.
 
 Then we have C++...
 
-image::gross.gif[]
+image::images/gross.gif[]
 
 C++ is disgusting! Moving on...
 
@@ -316,7 +316,7 @@ Then we have JRuby and Ruby. Friends, remember https://www.jruby.org[JRuby] is h
 
 Then.. we have Python. And this, well this makes me very sad indeed! I _love_ Python! I've been using Python since the 1990's! Bill Clinton was president when I first learned Python! But these numbers are _not_ great. Think about it. 75.88. Let's round up to 76. I'm not great at math. But you know what is? Freakin' Python! Let's ask it.
 
-image::python-doing-math.png[]
+image::images/python-doing-math.png[]
 
 38! That means that if you ran a program in Java, and the generation of the energy required to run it creates a bit of carbon that ends up  trapped in the atmosphere, raising the temperature, and that heightened temperature in turn kills ONE tree, then the equivalent program in Python would kill THIRTY-EIGHT trees! That's a forest! That's worse than Bitcoin! We need to do something about this, and soon. I don't know what, but something.
 
@@ -347,21 +347,21 @@ Sometimes I start to hum music. Or theme songs. Or elevator music. You know what
 One suggested, from our friend  that we should play this elevator music from the soundtrack to the Nintendo 64 video game to the first Pierce Brosnan outing as James Bond, _Goldeneye_. I like it.
 
 ._Goldeneye_ had some amazing elevator music!
-image::adinn-elevator-music.png[]
+image::images/adinn-elevator-music.png[]
 
 One response suggested that having a beeping sound would be useful. Couldn't agree more. My stupid microwave will make a _ding!_ sound when it's done. Why couldn't my multi-million line compiler?
 
 ._DING!_
-image::ivan-beeps.png[]
+image::images/ivan-beeps.png[]
 
 
 And then we got this response, from another one of my favorite doctors, https://twitter.com/fniephaus[Dr. Niephaus], who works on the GraalVM team. He said that adding elevator music would only just fix the symptoms, and not the cause of the problem, which is making GraalVM even more efficient in terms of time and memory.
 
-image::doctor-niephaus.png[]
+image::images/doctor-niephaus.png[]
 
 Ok. But he did share this promising prototype!
 
-image::graalvm-prototype.png[]
+image::images/graalvm-prototype.png[]
 
 I'm sure it'll get merged any day now...
 
@@ -384,17 +384,17 @@ ls -la $GRADLE && $GRADLE || $MVN
 
 ----
 
-On my machine, it starts up in ~100ms! Like a rocket! But I don't really care all that much about that because this is a standalone, long-lived service. What I care about is the https://en.wikipedia.org/wiki/RSS[Resident Set Size (RSS)]. Note the process identifier (PID) - it'll be in the logs. If the PID is 5, then get the RSS like this using the `ps` utility on most Unixes:
+On my machine, it starts up in ~100 milliseconds! Like a rocket! But I don't really care all that much about that because this is a standalone, long-lived service. What I care about is the https://en.wikipedia.org/wiki/RSS[Resident Set Size (RSS)]. Note the process identifier (PID) - it'll be in the logs. If the PID is 55, then get the RSS like this using the `ps` utility, available on virtually all Unixes:
 
 [source,shell]
 ----
-ps -o rss 5
+ps -o rss 55
 ----
 
 It'll dump out a number in kilobytes, so divide by a thousand, and you'll get the number in megabytes. On my machine, it takes just over 100MB to run. You can't run Slack in that tiny amount of RAM. I bet you've got individual browser tabs in Chrome taking that much.
 
 So, we have a program that is as concise as can be while being easy to develop and iterate on. And it uses virtual threads to give us unparalleled scalability. It runs as a standalone, self-contained, operating system and architecture-specific native image. Oh! And, it supports the freaking singularity!
 
-We   live in an amazing time.  There's never been a better time to be a Java and Spring developer. I hope I've so persuaded you, too.
+We live in an amazing time. There's never been a better time to be a Java and Spring developer. I hope I've so persuaded you, too.
 
 If you enjoyed this blog, I hope you'll subscribe to our https://youtube.com/@springsourcedev[YouTube channel], where I have new videos every week on the https://bit.ly/spring-tips-playlist[_Spring Tips_]. And, of course, you can find my https://biodrop.io/joshlong[Twitter/X, website, YouTube channel, books, Podcast, and much more here]. Thank you!

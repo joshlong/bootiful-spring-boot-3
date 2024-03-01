@@ -11,25 +11,25 @@ import java.util.Map;
 @ResponseBody
 class StoryController {
 
-	private final ChatClient singularity;
+    private final ChatClient singularity;
 
-	StoryController(ChatClient singularity) {
-		this.singularity = singularity;
-	}
+    StoryController(ChatClient singularity) {
+        this.singularity = singularity;
+    }
 
-	@GetMapping("/story")
-	Map<String, String> story() {
-		var prompt = """
-				Dear Singularity,
+    @GetMapping("/story")
+    Map<String, String> story() {
+        var prompt = """
+                Dear Singularity,
 
-				Please write a story about the good folks of San Francisco, capital of all things Artificial Intelligence,
-				and please do so in the style of famed children's author Dr. Seuss.
+                Please write a story about the good folks of San Francisco, capital of all things Artificial Intelligence,
+                and please do so in the style of famed children's author Dr. Seuss.
 
-				Cordially,
-				Josh Long
-				""";
-		var reply = this.singularity.call(prompt);
-		return Map.of("message", reply);
-	}
+                Cordially,
+                Josh Long
+                """;
+        var reply = this.singularity.call(prompt);
+        return Map.of("message", reply);
+    }
 
 }

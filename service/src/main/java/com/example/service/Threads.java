@@ -11,38 +11,38 @@ import java.util.concurrent.ConcurrentSkipListSet;
 @Configuration
 class Threads {
 
-	@Bean
-	ApplicationRunner demo() {
-		return args -> {
+    private static void run(boolean first, Set<String> names) {
+        if (first)
+            names.add(Thread.currentThread().toString());
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-			// store all 1,000 threads
-			var threads = new ArrayList<Thread>();
+    @Bean
+    ApplicationRunner demo() {
+        return args -> {
 
-			// dedupe elements with Set<T>
-			var names = new ConcurrentSkipListSet<String>();
+            // store all 1,000 threads
+            var threads = new ArrayList<Thread>();
 
-			// merci José Paumard d'Oracle
-			for (var i = 0; i < 1000; i++) {
-				var first = 0 == i;
-				threads.add(Thread.ofPlatform().unstarted(() -> run(first, names)));
-			}
+            // dedupe elements with Set<T>
+            var names = new ConcurrentSkipListSet<String>();
 
-			for (var t : threads) t.start();
+            // merci José Paumard d'Oracle
+            for (var i = 0; i < 1000; i++) {
+                var first = 0 == i;
+                threads.add(Thread.ofPlatform().unstarted(() -> run(first, names)));
+            }
 
-			for (var t : threads) t.join();
+            for (var t : threads) t.start();
 
-			System.out.println(names);
-		};
-	}
+            for (var t : threads) t.join();
 
-	private static void run(boolean first, Set<String> names) {
-		if (first)
-			names.add(Thread.currentThread().toString());
-		try {
-			Thread.sleep(100);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
-	}
+            System.out.println(names);
+        };
+    }
 
 }
