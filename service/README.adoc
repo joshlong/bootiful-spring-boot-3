@@ -1,5 +1,8 @@
 = Bootiful Spring Boot 3.2
 
+:author: Josh Long
+:email: josh@joshlong.com
+
 NOTE: the code is https://github.com/joshlong/bootiful-spring-boot-3/tree/main/service[here on my Github account: `github.com/joshlong/bootiful-spring-boot-3`].
 
 Hi, Spring fans! I'm Josh Long, and I work on the Spring team. I'm a Kotlin GDE and a Java Champion, and I'm of the opinion that there's never been a better time to be a Java and Spring Boot developer. I say that fully aware of where we stand in the span of things today. It's been 21+ years since the earliest releases of the Spring Framework and 11+ years since the earliest releases of Spring Boot. This year marks 20 years since the Spring Framework and 10 years since Spring Boot. So, when I say there's never been a better time to be a Java and Spring developer, bear in mind I've been in this for the better part of those decades. I love Java and the JVM,  and I love Spring, and it's been amazing.
@@ -298,7 +301,15 @@ Then we have Rust and its zero-cost abstractions. Well done.
 
 Then we have C++...
 
+ifdef::backend-pdf[]
+image::images/gross.png[]
+endif::[]
+
+ifndef::backend-pdf[]
 image::images/gross.gif[]
+endif::[]
+
+
 
 C++ is disgusting! Moving on...
 
@@ -312,7 +323,7 @@ If you scroll the list, you'll see some amazing numbers. Go and C# coming in aro
 
 Then we have PHP and Hack, the less said about which the better. Moving on!
 
-Then we have JRuby and Ruby. Friends, remember https://www.jruby.org[JRuby] is https://www.ruby-lang.org/en/[Ruby], written in Java. And Ruby is Ruby, written in C. And yet JRuby is almost a one third more efficient than Ruby! Just by dint of having been written in Java, and running on the JVM. The JVM is an amazing piece of kit. Absolutely phenomenal.
+Then we have JRuby and Ruby. Friends, remember https://www.jruby.org[JRuby] is https://www.ruby-lang.org/en/[Ru[by], written in Java. And Ruby is Ruby, written in C. And yet JRuby is almost a one third more efficient than Ruby! Just by dint of having been written in Java, and running on the JVM. The JVM is an amazing piece of kit. Absolutely phenomenal.
 
 Then.. we have Python. And this, well this makes me very sad indeed! I _love_ Python! I've been using Python since the 1990's! Bill Clinton was president when I first learned Python! But these numbers are _not_ great. Think about it. 75.88. Let's round up to 76. I'm not great at math. But you know what is? Freakin' Python! Let's ask it.
 
