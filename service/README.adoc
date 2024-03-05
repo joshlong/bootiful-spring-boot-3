@@ -395,14 +395,14 @@ ls -la $GRADLE && $GRADLE || $MVN
 
 ----
 
-On my machine, it starts up in ~100 milliseconds! Like a rocket! But I don't really care all that much about that because this is a standalone, long-lived service. What I care about is the https://en.wikipedia.org/wiki/RSS[Resident Set Size (RSS)]. Note the process identifier (PID) - it'll be in the logs. If the PID is 55, then get the RSS like this using the `ps` utility, available on virtually all Unixes:
+On my machine, it starts up in ~100 milliseconds! Like a rocket! And, obviously, it would be much faster still if I were using something like Spring Cloud Function to build AWS Lamba-style functions-as-a-service, because I wouldn't need for example to package an HTTP server. Indeed, if pure startup speed were _all_ that I really wanted, then I might even use Spring's amazing support for https://www.youtube.com/watch?v=dMhpDdR6nHw&t=2658s[Project CRaC]. That's neither here no there. I don't really care all that much about that because this is a standalone, long-lived service. What I care about is the resource usage, as represented by the https://en.wikipedia.org/wiki/RSS[Resident Set Size (RSS)]. Note the process identifier (PID) - it'll be in the logs. If the PID is, let's say, `55`, then get the RSS like this using the `ps` utility, available on virtually all Unixes:
 
 [source,shell]
 ----
 ps -o rss 55
 ----
 
-It'll dump out a number in kilobytes, so divide by a thousand, and you'll get the number in megabytes. On my machine, it takes just over 100MB to run. You can't run Slack in that tiny amount of RAM. I bet you've got individual browser tabs in Chrome taking that much.
+It'll dump out a number in kilobytes;  divide by a thousand and you'll get the number in megabytes. On my machine, it takes just over 100MB to run. You can't run Slack in that tiny amount of memory! I bet you've got individual browser tabs in Chrome taking that much, or more!
 
 So, we have a program that is as concise as can be while being easy to develop and iterate on. And it uses virtual threads to give us unparalleled scalability. It runs as a standalone, self-contained, operating system and architecture-specific native image. Oh! And, it supports the freaking singularity!
 
