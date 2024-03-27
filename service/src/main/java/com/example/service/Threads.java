@@ -35,7 +35,12 @@ class Threads {
 			// merci José Paumard d'Oracle
 			for (var i = 0; i < 1000; i++) {
 				var first = 0 == i;
-				threads.add(Thread.ofPlatform().unstarted(() -> run(first, names)));
+				threads.add(Thread.ofPlatform().unstarted(() ->  {
+					run(first, names); 
+					run(first, names); 
+					run(first, names); 
+					run(first, names); 
+				 }));
 			}
 
 			for (var t : threads)
