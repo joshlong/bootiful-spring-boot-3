@@ -20,6 +20,7 @@ class Threads {
 			throw new RuntimeException(e);
 		}
 	}
+	// stolen from Oracle Java Developer Advocate and professor José Paumard
 
 	@Bean
 	ApplicationRunner demo() {
